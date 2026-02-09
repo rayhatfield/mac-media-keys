@@ -4,6 +4,12 @@ A macOS menu bar app that forwards media keys (play/pause, next, previous) to a 
 
 This is a modern replacement for [Mac Media Key Forwarder](https://github.com/milgra/macmediakeyforwarder), designed to work with macOS Sequoia (15.x), Tahoe (26.x), and later.
 
+## Why?
+
+I find macOS’s media key handling behavior mildly infuriating. When I hit play/pause on my keyboard I just want it to toggle playback in whatever music streaming app I'm listening to. I never want it to launch Apple Music. I never want it to pause the video I'm watching. Just pause or resume music. That's it. Nothing else.
+
+But that's not what happens, and while I _understand_ why it does what it does, I'm frequently surprised and annoyed by it. And that's what this app tries to fix. Bind the play/pause and prev/next keys to a specific app of my choosing.
+
 ## Features
 
 - Intercepts media keys and forwards them to your chosen app
