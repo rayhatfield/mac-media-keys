@@ -103,7 +103,6 @@ class GenericMediaController: MediaController {
     private func sendCommand(_ command: String) {
         // Launch the app if it's not running
         if !isRunning() {
-            NSLog("MediaController: \(displayName) is not running, launching...")
             launchApp()
             // Wait a bit for the app to start, then send the command
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
@@ -135,7 +134,6 @@ class GenericMediaController: MediaController {
     private func executeAppleScript(_ command: String) {
         // First, try the direct AppleScript command (works for Spotify, Apple Music, etc.)
         let script = "tell application \"\(displayName)\" to \(command)"
-        NSLog("MediaController: Running AppleScript: \(script)")
 
         guard let appleScript = NSAppleScript(source: script) else {
             NSLog("MediaController: Failed to create AppleScript")
@@ -145,13 +143,10 @@ class GenericMediaController: MediaController {
         var error: NSDictionary?
         appleScript.executeAndReturnError(&error)
 
-        if let error = error {
-            NSLog("MediaController: AppleScript error: \(error)")
+        if error != nil {
             // AppleScript failed - the app doesn't support this command
             // Fall back to sending a keystroke to the app
             sendKeystrokeToApp(command)
-        } else {
-            NSLog("MediaController: AppleScript executed successfully")
         }
     }
 

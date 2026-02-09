@@ -13,6 +13,8 @@
 		1A0000010000000000000005 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000005 /* AppDelegate.swift */; };
 		1A0000010000000000000006 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000007 /* AppConfiguration.swift */; };
 		1A0000010000000000000007 /* ConfigureAppsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000008 /* ConfigureAppsWindow.swift */; };
+		1A0000010000000000000008 /* NowPlayingInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000009 /* NowPlayingInterceptor.swift */; };
+		1A0000010000000000000009 /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A000002000000000000000A /* MediaPlayer.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +25,8 @@
 		1A0000020000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000020000000000000007 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		1A0000020000000000000008 /* ConfigureAppsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureAppsWindow.swift; sourceTree = "<group>"; };
+		1A0000020000000000000009 /* NowPlayingInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingInterceptor.swift; sourceTree = "<group>"; };
+		1A000002000000000000000A /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
 		1A0000030000000000000001 /* MacMediaKeys.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacMediaKeys.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -31,6 +35,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1A0000010000000000000009 /* MediaPlayer.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -42,7 +47,16 @@
 			children = (
 				1A0000050000000000000002 /* MacMediaKeys */,
 				1A0000050000000000000003 /* Products */,
+				1A0000050000000000000004 /* Frameworks */,
 			);
+			sourceTree = "<group>";
+		};
+		1A0000050000000000000004 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1A000002000000000000000A /* MediaPlayer.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		1A0000050000000000000002 /* MacMediaKeys */ = {
@@ -54,6 +68,7 @@
 				1A0000020000000000000004 /* MediaController.swift */,
 				1A0000020000000000000007 /* AppConfiguration.swift */,
 				1A0000020000000000000008 /* ConfigureAppsWindow.swift */,
+				1A0000020000000000000009 /* NowPlayingInterceptor.swift */,
 				1A0000020000000000000006 /* Info.plist */,
 			);
 			path = MacMediaKeys;
@@ -125,6 +140,7 @@
 				1A0000010000000000000005 /* AppDelegate.swift in Sources */,
 				1A0000010000000000000006 /* AppConfiguration.swift in Sources */,
 				1A0000010000000000000007 /* ConfigureAppsWindow.swift in Sources */,
+				1A0000010000000000000008 /* NowPlayingInterceptor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

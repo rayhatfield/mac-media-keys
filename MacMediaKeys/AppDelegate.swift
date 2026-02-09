@@ -1,10 +1,15 @@
 import Cocoa
 
-class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlayingInterceptorDelegate {
     var statusItem: NSStatusItem!
     var mediaKeyTap: MediaKeyTap!
+    var nowPlayingInterceptor: NowPlayingInterceptor!
     var currentController: MediaController!
     private let config = AppConfiguration.shared
+
+    // Deduplication: multiple pathways may fire for the same keypress
+    private var lastCommandTime: Date = .distantPast
+    private var lastCommandKey: MediaKey?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("MacMediaKeys: App launched")
@@ -26,7 +31,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate {
             NSLog("MacMediaKeys: Initial target app: \(app.displayName)")
         }
 
-        // Setup media key tap (defer slightly to ensure UI is ready)
+        // Setup Now Playing interceptor to claim media key routing from rcd/mediaremoted
+        nowPlayingInterceptor = NowPlayingInterceptor()
+        nowPlayingInterceptor.delegate = self
+
+        // Setup CGEvent media key tap (defer slightly to ensure UI is ready)
         DispatchQueue.main.async { [weak self] in
             self?.setupMediaKeyTap()
         }
@@ -176,22 +185,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate {
     }
 
     func setupMediaKeyTap() {
-        NSLog("MacMediaKeys: Setting up media key tap")
-
         mediaKeyTap = MediaKeyTap()
         mediaKeyTap.delegate = self
 
         if !MediaKeyTap.isAccessibilityEnabled() {
-            NSLog("MacMediaKeys: Requesting accessibility permission")
             _ = MediaKeyTap.checkAccessibilityPermission()
             updateStatus("Status: Need Accessibility Permission")
         }
 
         if mediaKeyTap.start() {
-            NSLog("MacMediaKeys: Media key tap started successfully")
             updateStatus("Status: Active ✓")
         } else {
-            NSLog("MacMediaKeys: Failed to start media key tap")
             updateStatus("Status: Need Accessibility Permission")
         }
     }
@@ -213,10 +217,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate {
         NSApplication.shared.terminate(nil)
     }
 
-    // MARK: - MediaKeyTapDelegate
+    // MARK: - Command Dispatch (shared by both pathways)
 
-    func mediaKeyTap(_ tap: MediaKeyTap, receivedKey key: MediaKey) {
-        NSLog("MacMediaKeys: Received media key: \(key)")
+    /// Sends a media command to the current controller, with deduplication to avoid
+    /// double-firing when both CGEvent tap and MPRemoteCommandCenter handle the same keypress.
+    private func dispatchCommand(_ key: MediaKey, source: String) {
+        let now = Date()
+        if lastCommandKey == key, now.timeIntervalSince(lastCommandTime) < 0.3 {
+            return
+        }
+        lastCommandKey = key
+        lastCommandTime = now
 
         guard let controller = currentController else {
             NSLog("MacMediaKeys: No controller set")
@@ -231,5 +242,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate {
         case .previous, .rewind:
             controller.previousTrack()
         }
+    }
+
+    // MARK: - MediaKeyTapDelegate
+
+    func mediaKeyTap(_ tap: MediaKeyTap, receivedKey key: MediaKey) {
+        dispatchCommand(key, source: "CGEventTap")
+    }
+
+    // MARK: - NowPlayingInterceptorDelegate
+
+    func nowPlayingInterceptor(_ interceptor: NowPlayingInterceptor, receivedKey key: MediaKey) {
+        dispatchCommand(key, source: "NowPlaying")
     }
 }

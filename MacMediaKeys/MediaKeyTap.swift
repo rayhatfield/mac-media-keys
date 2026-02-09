@@ -142,13 +142,15 @@ class MediaKeyTap {
         // Key states: 0xA = key down, 0xB = key up
         // We MUST consume BOTH to prevent the system from seeing a complete keypress
         // which would trigger mediaremoted to launch Apple Music
+        //
+        // On macOS 26+, rcd may consume key-down events before our tap sees them,
+        // but key-up events still come through. So we notify delegate on BOTH
+        // key-down and key-up (dedup in AppDelegate prevents double-firing).
 
         if keyState == 0xA {
             // Key down event
             if keyRepeat == 0 {
-                // Only notify delegate on first key down (not repeats)
                 if let mediaKey = MediaKey(rawValue: keyCode) {
-                    NSLog("MediaKeyTap: Key DOWN - \(mediaKey)")
                     DispatchQueue.main.async { [weak self] in
                         guard let self = self else { return }
                         self.delegate?.mediaKeyTap(self, receivedKey: mediaKey)
@@ -158,8 +160,14 @@ class MediaKeyTap {
             // Consume key down
             return nil
         } else if keyState == 0xB {
-            // Key up event - consume but don't notify
-            NSLog("MediaKeyTap: Key UP - consuming")
+            // Key up event - also notify delegate as fallback
+            // (on macOS 26+, key-down may be consumed by rcd before reaching us)
+            if let mediaKey = MediaKey(rawValue: keyCode) {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.delegate?.mediaKeyTap(self, receivedKey: mediaKey)
+                }
+            }
             return nil
         }
 
