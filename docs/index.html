@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Mac Media Keys Forwarder</title>
+  <meta name="description" content="A macOS menu bar app that forwards media keys to the app you actually want to control. Free and open source.">
+
+  <meta property="og:title" content="Mac Media Keys Forwarder">
+  <meta property="og:description" content="Your media keys. Your music app. A macOS menu bar app that forwards media keys to the app you actually want to control.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rayhatfield.github.io/mac-media-keys/">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1>Your media keys.<br>Your music app.</h1>
+        <p class="hero-sub">Mac Media Keys Forwarder sends your keyboard's play, pause, next, and previous keys to the app you actually want to control. Not Apple Music. Not some random browser tab. Just your music.</p>
+        <div class="hero-actions">
+          <a href="https://github.com/rayhatfield/mac-media-keys/releases" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download for macOS
+          </a>
+          <a href="https://github.com/rayhatfield/mac-media-keys" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+        <p class="hero-meta">Requires macOS 13.0 or later. Free and open source.</p>
+      </div>
+      <div class="hero-screenshot">
+        <img src="screenshot.png" alt="Mac Media Keys Forwarder menu bar dropdown showing media app selection" width="360" height="auto">
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem -->
+  <section class="section" id="problem">
+    <div class="container container-narrow">
+      <h2>You press play. The wrong app responds.</h2>
+      <p>Every macOS user knows the feeling. You tap the play button on your keyboard expecting Spotify to resume your playlist, and instead Apple Music launches out of nowhere. Or some browser tab starts playing a video you forgot about.</p>
+      <p>macOS tries to be smart about media key routing, but when you just want your keys to always control one specific app, it's just frustrating. Mac Media Keys Forwarder fixes this by intercepting your media keys before macOS can misroute them, and sending them exactly where you want.</p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section section-alt" id="features">
+    <div class="container">
+      <h2>Simple. Focused. Done.</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+          </div>
+          <h3>Targeted Forwarding</h3>
+          <p>Pick your music app and all media keys go there. Always. No exceptions.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Blocks Apple Music Hijacking</h3>
+          <p>Intercepts media key events before macOS can route them to Apple Music or any other unintended app.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <h3>Spotify &amp; Apple Music Built In</h3>
+          <p>First-class support for the two most popular players, with native AppleScript integration.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          </div>
+          <h3>Any App You Want</h3>
+          <p>Add any media app through the Configure Apps panel. If it plays music, you can control it.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="4" rx="1"/><circle cx="12" cy="5" r="1"/></svg>
+          </div>
+          <h3>Lives in Your Menu Bar</h3>
+          <p>A tiny music note icon. Click to switch apps. Stays out of your way otherwise.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3>Remembers Your Choice</h3>
+          <p>Your selected app persists between launches. Set it once and forget about it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="section" id="how-it-works">
+    <div class="container container-narrow">
+      <h2>Three steps. Thirty seconds.</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Download &amp; Install</h3>
+            <p>Grab the latest release, unzip, and drag to Applications.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Pick Your App</h3>
+            <p>Click the music note in the menu bar and select your preferred music player.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Press Play</h3>
+            <p>That's it. Your media keys now go where they should.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Installation Notes -->
+  <section class="section section-alt" id="installation">
+    <div class="container container-narrow">
+      <div class="callout">
+        <h2>A quick note about permissions</h2>
+        <p>Mac Media Keys Forwarder isn't on the Mac App Store because it needs Accessibility permissions that sandboxed App Store apps can't request. On first launch, right-click the app and select "Open" to bypass the unsigned app warning. You'll also need to grant Accessibility permission in System Settings, which the app will prompt you for.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Support -->
+  <section class="section" id="support">
+    <div class="container container-narrow support-section">
+      <h2>Find this useful?</h2>
+      <p>Mac Media Keys Forwarder is free and open source. If it saves you from even one unwanted Apple Music launch, consider buying me a coffee.</p>
+      <a href="https://buymeacoffee.com/rayhatfield" class="btn btn-coffee" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        Buy Me a Coffee
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container container-narrow">
+      <p>Mac Media Keys Forwarder is <a href="https://github.com/rayhatfield/mac-media-keys/blob/main/LICENSE">MIT licensed</a> and made by <a href="https://github.com/rayhatfield">ray hatfield</a>.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

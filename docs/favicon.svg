@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    @media (prefers-color-scheme: light) {
+      .note { fill: #0071E3; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .note { fill: #2997FF; }
+    }
+  </style>
+  <path class="note" d="M22 3v18.17A4.5 4.5 0 1 1 19 17V9l-8 2.4v10.77A4.5 4.5 0 1 1 8 18V8l14-5z" fill="#0071E3"/>
+</svg>
