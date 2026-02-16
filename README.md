@@ -27,13 +27,10 @@ Download the latest release from the [Releases page](https://github.com/rayhatfi
 
 1. Download `MacMediaKeys.zip` from the latest release
 2. Unzip and drag `MacMediaKeys.app` to your Applications folder
-3. **First launch**: Right-click the app and select "Open" (required for unsigned apps)
-4. Grant Accessibility permission when prompted:
+3. Grant Accessibility permission when prompted:
    - Click "Open System Settings" or go to **System Settings → Privacy & Security → Accessibility**
    - Enable **MacMediaKeys**
-5. Restart the app after granting permission
-
-> **Note**: Since this app is not notarized, macOS will warn you about it being from an "unidentified developer". This is normal for apps distributed outside the Mac App Store. Right-clicking and selecting "Open" bypasses this warning.
+4. Restart the app after granting permission
 
 ## Usage
 
