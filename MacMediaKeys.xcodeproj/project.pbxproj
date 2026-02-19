@@ -15,6 +15,7 @@
 		1A0000010000000000000007 /* ConfigureAppsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000008 /* ConfigureAppsWindow.swift */; };
 		1A0000010000000000000008 /* NowPlayingInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000009 /* NowPlayingInterceptor.swift */; };
 		1A0000010000000000000009 /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A000002000000000000000A /* MediaPlayer.framework */; };
+		1A000001000000000000000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A000002000000000000000B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		1A0000020000000000000008 /* ConfigureAppsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureAppsWindow.swift; sourceTree = "<group>"; };
 		1A0000020000000000000009 /* NowPlayingInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingInterceptor.swift; sourceTree = "<group>"; };
 		1A000002000000000000000A /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
+		1A000002000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A0000030000000000000001 /* MacMediaKeys.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacMediaKeys.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -70,6 +72,7 @@
 				1A0000020000000000000008 /* ConfigureAppsWindow.swift */,
 				1A0000020000000000000009 /* NowPlayingInterceptor.swift */,
 				1A0000020000000000000006 /* Info.plist */,
+				1A000002000000000000000B /* Assets.xcassets */,
 			);
 			path = MacMediaKeys;
 			sourceTree = "<group>";
@@ -84,6 +87,17 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXResourcesBuildPhase section */
+		1A000004000000000000000R /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A000001000000000000000A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		1A0000060000000000000001 /* MacMediaKeys */ = {
 			isa = PBXNativeTarget;
@@ -91,6 +105,7 @@
 			buildPhases = (
 				1A0000070000000000000001 /* Sources */,
 				1A0000040000000000000001 /* Frameworks */,
+				1A000004000000000000000R /* Resources */,
 			);
 			buildRules = (
 			);
