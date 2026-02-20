@@ -52,8 +52,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
             return
         }
 
-        // Use SF Symbol which renders well and is compact
-        if let image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Media Keys") {
+        // Use SF Symbol matching the app icon
+        if let image = NSImage(systemSymbolName: "play.fill", accessibilityDescription: "Media Keys") {
             image.isTemplate = true  // Adapts to light/dark mode
             button.image = image
         } else {
