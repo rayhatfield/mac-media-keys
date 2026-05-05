@@ -1,7 +1,7 @@
 import Cocoa
 
 class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlayingInterceptorDelegate {
-    var statusItem: NSStatusItem!
+    var statusItem: NSStatusItem?
     var mediaKeyTap: MediaKeyTap!
     var nowPlayingInterceptor: NowPlayingInterceptor!
     var currentController: MediaController!
@@ -22,8 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
             object: nil
         )
 
-        // Setup status bar first
-        setupStatusBar()
+        syncPresentationMode()
 
         // Load initial controller
         if let app = config.selectedApp() {
@@ -41,31 +40,49 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         }
     }
 
-    func setupStatusBar() {
+    func syncPresentationMode() {
+        NSApp.setActivationPolicy(.accessory)
+        destroyMainMenu()
+
+        if config.showsMenuBarIcon() {
+            setupStatusBarIfNeeded()
+            rebuildMenu()
+        } else {
+            teardownStatusBar()
+        }
+    }
+
+    private func setupStatusBarIfNeeded() {
+        guard statusItem == nil else { return }
+
         NSLog("MacMediaKeys: Setting up status bar")
 
-        // Create the status item with square length (compact)
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem = item
 
-        guard let button = statusItem.button else {
+        guard let button = item.button else {
             NSLog("MacMediaKeys: ERROR - Failed to get status item button")
             return
         }
 
-        // Use SF Symbol matching the app icon
         if let image = NSImage(systemSymbolName: "play.fill", accessibilityDescription: "Media Keys") {
-            image.isTemplate = true  // Adapts to light/dark mode
+            image.isTemplate = true
             button.image = image
         } else {
-            // Fallback to compact text
             button.title = "♪"
         }
 
         NSLog("MacMediaKeys: Status item created, button: \(String(describing: button))")
+    }
 
-        rebuildMenu()
+    private func teardownStatusBar() {
+        guard let item = statusItem else { return }
+        NSStatusBar.system.removeStatusItem(item)
+        statusItem = nil
+    }
 
-        NSLog("MacMediaKeys: Status bar setup complete")
+    private func destroyMainMenu() {
+        NSApp.mainMenu = nil
     }
 
     func rebuildMenu() {
@@ -103,13 +120,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         menu.addItem(NSMenuItem.separator())
 
         // Configure Apps
-        let configureItem = NSMenuItem(
-            title: "Configure Apps...",
-            action: #selector(openConfigureApps),
+        let settingsItem = NSMenuItem(
+            title: "Settings…",
+            action: #selector(openSettings),
             keyEquivalent: ","
         )
-        configureItem.target = self
-        menu.addItem(configureItem)
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -141,7 +158,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         quitItem.target = self
         menu.addItem(quitItem)
 
-        statusItem.menu = menu
+        statusItem?.menu = menu
 
         // Update status if we have it
         if MediaKeyTap.isAccessibilityEnabled() {
@@ -151,7 +168,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
     @objc func configurationChanged() {
         NSLog("MacMediaKeys: Configuration changed, rebuilding menu")
-        rebuildMenu()
+        syncPresentationMode()
 
         // Update controller if selected app changed or was removed
         if let app = config.selectedApp() {
@@ -166,7 +183,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         guard let app = sender.representedObject as? CustomMediaApp else { return }
 
         // Update checkmarks
-        if let menu = statusItem.menu {
+        if let menu = statusItem?.menu {
             for item in menu.items {
                 if let itemApp = item.representedObject as? CustomMediaApp {
                     item.state = (itemApp.bundleIdentifier == app.bundleIdentifier) ? .on : .off
@@ -180,7 +197,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         NSLog("MacMediaKeys: Switched to: \(app.displayName)")
     }
 
-    @objc func openConfigureApps() {
+    @objc func openSettings() {
         ConfigureAppsWindowController.show()
     }
 
@@ -201,7 +218,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
     }
 
     func updateStatus(_ text: String) {
-        if let menu = statusItem.menu,
+        if let menu = statusItem?.menu,
            let item = menu.item(withTag: 100) {
             item.title = text
         }
@@ -215,6 +232,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
     @objc func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !config.showsMenuBarIcon() {
+            openSettings()
+            return true
+        }
+        return false
     }
 
     // MARK: - Command Dispatch (shared by both pathways)
