@@ -19,7 +19,7 @@ class ConfigureAppsWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Configure Apps"
+        window.title = "Settings"
         window.center()
         window.isReleasedWhenClosed = false
 
@@ -35,6 +35,7 @@ class ConfigureAppsView: NSView {
     private var builtInCheckboxes: [MediaApp: NSButton] = [:]
     private var customAppsStackView: NSStackView!
     private let config = AppConfiguration.shared
+    private var showMenuBarIconCheckbox: NSButton!
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -60,6 +61,34 @@ class ConfigureAppsView: NSView {
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
             mainStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -20)
+        ])
+
+        // General Section
+        let generalLabel = NSTextField(labelWithString: "General")
+        generalLabel.font = NSFont.boldSystemFont(ofSize: 13)
+        mainStack.addArrangedSubview(generalLabel)
+
+        let generalDescription = NSTextField(wrappingLabelWithString: "Choose how Mac Media Keys Forwarder appears on your Mac.")
+        generalDescription.font = NSFont.systemFont(ofSize: 11)
+        generalDescription.textColor = .secondaryLabelColor
+        mainStack.addArrangedSubview(generalDescription)
+
+        showMenuBarIconCheckbox = NSButton(checkboxWithTitle: "Hide status bar icon", target: self, action: #selector(showMenuBarIconToggled(_:)))
+        showMenuBarIconCheckbox.state = config.showsMenuBarIcon() ? .off : .on
+        mainStack.addArrangedSubview(showMenuBarIconCheckbox)
+
+        let menuBarHint = NSTextField(wrappingLabelWithString: "Open the app again to show the icon and Settings.")
+        menuBarHint.font = NSFont.systemFont(ofSize: 11)
+        menuBarHint.textColor = .secondaryLabelColor
+        mainStack.addArrangedSubview(menuBarHint)
+
+        // Separator
+        let topSeparator = NSBox()
+        topSeparator.boxType = .separator
+        topSeparator.translatesAutoresizingMaskIntoConstraints = false
+        mainStack.addArrangedSubview(topSeparator)
+        NSLayoutConstraint.activate([
+            topSeparator.widthAnchor.constraint(equalTo: mainStack.widthAnchor)
         ])
 
         // Built-in Apps Section
@@ -112,6 +141,10 @@ class ConfigureAppsView: NSView {
         let addButton = NSButton(title: "Add App...", target: self, action: #selector(addAppClicked))
         addButton.bezelStyle = .rounded
         mainStack.addArrangedSubview(addButton)
+    }
+
+    @objc private func showMenuBarIconToggled(_ sender: NSButton) {
+        config.setShowsMenuBarIcon(sender.state != .on)
     }
 
     @objc private func builtInAppToggled(_ sender: NSButton) {
