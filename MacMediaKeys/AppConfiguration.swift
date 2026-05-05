@@ -7,6 +7,7 @@ class AppConfiguration {
     private let enabledBuiltInAppsKey = "EnabledBuiltInApps"
     private let customAppsKey = "CustomApps"
     private let selectedAppBundleIdKey = "SelectedAppBundleId"
+    private let showMenuBarIconKey = "ShowMenuBarIcon"
 
     private init() {
         // Set default enabled apps if not configured
@@ -15,6 +16,21 @@ class AppConfiguration {
             let defaultEnabled = MediaApp.allCases.map { $0.rawValue }
             UserDefaults.standard.set(defaultEnabled, forKey: enabledBuiltInAppsKey)
         }
+
+        if UserDefaults.standard.object(forKey: showMenuBarIconKey) == nil {
+            UserDefaults.standard.set(true, forKey: showMenuBarIconKey)
+        }
+    }
+
+    // MARK: - App Appearance
+
+    func showsMenuBarIcon() -> Bool {
+        UserDefaults.standard.object(forKey: showMenuBarIconKey) as? Bool ?? true
+    }
+
+    func setShowsMenuBarIcon(_ shows: Bool) {
+        UserDefaults.standard.set(shows, forKey: showMenuBarIconKey)
+        NotificationCenter.default.post(name: .appConfigurationChanged, object: nil)
     }
 
     // MARK: - Built-in Apps

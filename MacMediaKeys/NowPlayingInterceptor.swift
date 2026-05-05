@@ -24,35 +24,22 @@ class NowPlayingInterceptor {
     private func setupRemoteCommands() {
         let center = MPRemoteCommandCenter.shared()
 
-        center.togglePlayPauseCommand.isEnabled = true
-        center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play)
-            return .success
-        }
+        register(center.togglePlayPauseCommand, as: .play)
+        register(center.playCommand, as: .play)
+        register(center.pauseCommand, as: .play)
 
-        center.playCommand.isEnabled = true
-        center.playCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play)
-            return .success
-        }
+        register(center.nextTrackCommand, as: .next)
+        register(center.previousTrackCommand, as: .previous)
 
-        center.pauseCommand.isEnabled = true
-        center.pauseCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play)
-            return .success
-        }
-
-        center.nextTrackCommand.isEnabled = true
-        center.nextTrackCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.next)
-            return .success
-        }
-
-        center.previousTrackCommand.isEnabled = true
-        center.previousTrackCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.previous)
-            return .success
-        }
+        // Some keyboards and macOS routes expose forward/backward as seek/skip
+        // commands instead of next/previous. Normalize them to track navigation
+        // so they still reach the selected player.
+        center.skipForwardCommand.preferredIntervals = [15]
+        center.skipBackwardCommand.preferredIntervals = [15]
+        register(center.seekForwardCommand, as: .fast)
+        register(center.seekBackwardCommand, as: .rewind)
+        register(center.skipForwardCommand, as: .fast)
+        register(center.skipBackwardCommand, as: .rewind)
     }
 
     private func setupNowPlaying() {
@@ -70,6 +57,14 @@ class NowPlayingInterceptor {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.delegate?.nowPlayingInterceptor(self, receivedKey: key)
+        }
+    }
+
+    private func register(_ command: MPRemoteCommand, as key: MediaKey) {
+        command.isEnabled = true
+        command.addTarget { [weak self] _ in
+            self?.handleCommand(key)
+            return .success
         }
     }
 }
