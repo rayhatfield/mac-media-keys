@@ -151,6 +151,7 @@ class MediaKeyTap {
             // Key down event
             if keyRepeat == 0 {
                 if let mediaKey = MediaKey(rawValue: keyCode) {
+                    debugLog("CGEventTap key-down keyCode=\(keyCode) key=\(mediaKey)")
                     DispatchQueue.main.async { [weak self] in
                         guard let self = self else { return }
                         self.delegate?.mediaKeyTap(self, receivedKey: mediaKey)
@@ -163,6 +164,7 @@ class MediaKeyTap {
             // Key up event - also notify delegate as fallback
             // (on macOS 26+, key-down may be consumed by rcd before reaching us)
             if let mediaKey = MediaKey(rawValue: keyCode) {
+                debugLog("CGEventTap key-up keyCode=\(keyCode) key=\(mediaKey)")
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
                     self.delegate?.mediaKeyTap(self, receivedKey: mediaKey)

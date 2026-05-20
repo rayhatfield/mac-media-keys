@@ -1,5 +1,26 @@
 import Cocoa
 
+/// Diagnostic logger. In DEBUG builds emits an `NSLog` and appends to
+/// `/tmp/macmediakeys.log` (the unified-log filter doesn't always surface our
+/// output reliably). Compiles to a no-op in Release.
+func debugLog(_ message: String) {
+#if DEBUG
+    NSLog("MacMediaKeys: \(message)")
+    let line = "\(ISO8601DateFormatter().string(from: Date())) \(message)\n"
+    if let data = line.data(using: .utf8) {
+        let path = "/tmp/macmediakeys.log"
+        if FileManager.default.fileExists(atPath: path),
+           let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            try? handle.close()
+        } else {
+            try? data.write(to: URL(fileURLWithPath: path))
+        }
+    }
+#endif
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlayingInterceptorDelegate {
     var statusItem: NSStatusItem!
     var mediaKeyTap: MediaKeyTap!
@@ -234,6 +255,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
     private func dispatchCommand(_ key: MediaKey, source: String) {
         let now = Date()
         if lastCommandKey == key, now.timeIntervalSince(lastCommandTime) < 0.3 {
+            debugLog("dispatchCommand(\(key)) from \(source) DEDUPED")
             return
         }
         lastCommandKey = key
@@ -243,6 +265,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
             NSLog("MacMediaKeys: No controller set")
             return
         }
+
+        debugLog("dispatchCommand(\(key)) from \(source) → \(controller.displayName)")
 
         switch key {
         case .play:

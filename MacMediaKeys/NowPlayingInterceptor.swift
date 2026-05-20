@@ -24,33 +24,38 @@ class NowPlayingInterceptor {
     private func setupRemoteCommands() {
         let center = MPRemoteCommandCenter.shared()
 
+        // togglePlayPauseCommand corresponds to the hardware play/pause media
+        // key. The standalone play/pause commands are also sent by the system
+        // for non-keypress reasons (audio route changes, AVRCP sync, etc.), so
+        // we log them but the delegate decides whether to forward based on
+        // whether a real keypress was seen recently.
         center.togglePlayPauseCommand.isEnabled = true
         center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play)
+            self?.handleCommand(.play, sourceCommand: "togglePlayPause")
             return .success
         }
 
         center.playCommand.isEnabled = true
         center.playCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play)
+            self?.handleCommand(.play, sourceCommand: "play")
             return .success
         }
 
         center.pauseCommand.isEnabled = true
         center.pauseCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play)
+            self?.handleCommand(.play, sourceCommand: "pause")
             return .success
         }
 
         center.nextTrackCommand.isEnabled = true
         center.nextTrackCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.next)
+            self?.handleCommand(.next, sourceCommand: "nextTrack")
             return .success
         }
 
         center.previousTrackCommand.isEnabled = true
         center.previousTrackCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.previous)
+            self?.handleCommand(.previous, sourceCommand: "previousTrack")
             return .success
         }
     }
@@ -66,7 +71,8 @@ class NowPlayingInterceptor {
         ]
     }
 
-    private func handleCommand(_ key: MediaKey) {
+    private func handleCommand(_ key: MediaKey, sourceCommand: String) {
+        debugLog("MPRemoteCommandCenter received \(sourceCommand) → mapped key=\(key)")
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.delegate?.nowPlayingInterceptor(self, receivedKey: key)
