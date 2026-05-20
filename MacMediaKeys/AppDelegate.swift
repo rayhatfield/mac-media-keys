@@ -11,6 +11,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
     private var lastCommandTime: Date = .distantPast
     private var lastCommandKey: MediaKey?
 
+    // Gating: remote-command-center events are only honored if the CGEvent tap
+    // saw a real media-key event recently. Otherwise the system can trigger
+    // playback via MPRemoteCommandCenter for reasons unrelated to the user
+    // pressing a key — notably Bluetooth audio route changes.
+    private var lastTapEventTime: Date = .distantPast
+    private var cgEventTapActive: Bool = false
+    private static let remoteCommandGraceWindow: TimeInterval = 0.5
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("MacMediaKeys: App launched")
 
@@ -194,8 +202,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         }
 
         if mediaKeyTap.start() {
+            cgEventTapActive = true
             updateStatus("Status: Active ✓")
         } else {
+            cgEventTapActive = false
             updateStatus("Status: Need Accessibility Permission")
         }
     }
@@ -247,12 +257,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
     // MARK: - MediaKeyTapDelegate
 
     func mediaKeyTap(_ tap: MediaKeyTap, receivedKey key: MediaKey) {
+        lastTapEventTime = Date()
         dispatchCommand(key, source: "CGEventTap")
     }
 
     // MARK: - NowPlayingInterceptorDelegate
 
     func nowPlayingInterceptor(_ interceptor: NowPlayingInterceptor, receivedKey key: MediaKey) {
+        // Require a recent CGEvent tap signal as proof that a hardware media key
+        // was actually pressed. macOS issues MPRemoteCommandCenter callbacks for
+        // things other than keypresses (e.g. Bluetooth audio route changes), and
+        // without this gate those cause unexpected playback. If accessibility is
+        // not granted the tap can't run, so fall back to ungated behavior.
+        if cgEventTapActive,
+           Date().timeIntervalSince(lastTapEventTime) > Self.remoteCommandGraceWindow {
+            NSLog("MacMediaKeys: Ignoring remote command \(key) — no recent media-key event (likely audio route change)")
+            return
+        }
         dispatchCommand(key, source: "NowPlaying")
     }
 }
