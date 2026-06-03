@@ -10,7 +10,7 @@ I find macOS’s media key handling behavior mildly infuriating. When I hit play
 
 But that's not what happens, and while I _understand_ why it does what it does, I'm frequently surprised and annoyed by it. And that's what this app tries to fix. Bind the play/pause and prev/next keys to a specific app of my choosing.
 
-Full disclosure: I am a professional developer but I am not a macOS/Swift/Obj-C developer. This is 100% vibe-coded except where contributions from others are involved.
+Full disclosure: I am a professional developer but I am not a macOS/Swift/Obj-C developer. This is 100% vibe-coded except where contributions from others are involved. (Thanks, @polderleo!)
 
 ## Features
 
