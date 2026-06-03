@@ -152,12 +152,11 @@ class GenericMediaController: MediaController {
 
     private func sendKeystrokeToApp(_ command: String) {
         // For apps that don't support AppleScript media commands,
-        // activate the app and send keystroke directly via CGEvent
+        // send a keystroke directly to the app's process via postToPid —
+        // no activation required, so the user's current window keeps focus.
         NSLog("MediaController: Falling back to direct keystroke for \(displayName)")
 
-        // Determine which keystroke to send based on command
         let keyCode: CGKeyCode
-
         if command.contains("play") || command.contains("pause") {
             keyCode = 49  // spacebar
         } else if command.contains("next") {
@@ -169,7 +168,6 @@ class GenericMediaController: MediaController {
             return
         }
 
-        // 1. Find and activate the target app
         guard let app = NSWorkspace.shared.runningApplications.first(where: {
             $0.bundleIdentifier == bundleIdentifier
         }) else {
@@ -177,31 +175,23 @@ class GenericMediaController: MediaController {
             return
         }
 
-        NSLog("MediaController: Activating \(displayName)")
-        app.activate(options: [.activateIgnoringOtherApps])
+        let pid = app.processIdentifier
+        NSLog("MediaController: Sending key code \(keyCode) to \(displayName) (pid \(pid))")
 
-        // 2. Small delay to ensure app is active, then send keystroke
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            NSLog("MediaController: Sending key code \(keyCode) to \(self.displayName)")
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
+            NSLog("MediaController: Failed to create event source")
+            return
+        }
 
-            // Create CGEvent for key press
-            guard let source = CGEventSource(stateID: .hidSystemState) else {
-                NSLog("MediaController: Failed to create event source")
-                return
+        if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true) {
+            keyDown.postToPid(pid)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) {
+                keyUp.postToPid(pid)
             }
-
-            // Key down
-            if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true) {
-                keyDown.post(tap: .cghidEventTap)
-            }
-
-            // Key up (after tiny delay)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) {
-                    keyUp.post(tap: .cghidEventTap)
-                }
-                NSLog("MediaController: Keystroke sent to \(self.displayName)")
-            }
+            NSLog("MediaController: Keystroke sent to \(self.displayName)")
         }
     }
 }
