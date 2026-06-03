@@ -64,6 +64,23 @@ xcodebuild -scheme MacMediaKeys -configuration Release build
 # ~/Library/Developer/Xcode/DerivedData/MacMediaKeys-*/Build/Products/Release/MacMediaKeys.app
 ```
 
+### Installing a Debug build
+
+If you want to install and run a local debug build instead of the release zip:
+
+```bash
+xcodebuild -scheme MacMediaKeys -configuration Debug build
+```
+
+Then install the built app:
+
+1. Open `~/Library/Developer/Xcode/DerivedData/`
+2. Find `MacMediaKeys-*/Build/Products/Debug/MacMediaKeys.app`
+3. Drag `MacMediaKeys.app` to your Applications folder
+4. Launch it and grant Accessibility permission in **System Settings → Privacy & Security → Accessibility**
+
+If you already have a release build installed, replace it with the Debug build so macOS is launching the version you expect.
+
 ## How It Works
 
 The app uses `CGEventTap` to intercept system-defined media key events before they reach other applications. When a media key is pressed, the app sends the corresponding command to your selected media player via AppleScript (for supported apps) or direct keystroke injection (for other apps).

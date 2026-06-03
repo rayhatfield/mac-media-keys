@@ -29,35 +29,22 @@ class NowPlayingInterceptor {
         // for non-keypress reasons (audio route changes, AVRCP sync, etc.), so
         // we log them but the delegate decides whether to forward based on
         // whether a real keypress was seen recently.
-        center.togglePlayPauseCommand.isEnabled = true
-        center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play, sourceCommand: "togglePlayPause")
-            return .success
-        }
+        register(center.togglePlayPauseCommand, as: .play, sourceCommand: "togglePlayPause")
+        register(center.playCommand, as: .play, sourceCommand: "play")
+        register(center.pauseCommand, as: .play, sourceCommand: "pause")
 
-        center.playCommand.isEnabled = true
-        center.playCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play, sourceCommand: "play")
-            return .success
-        }
+        register(center.nextTrackCommand, as: .next, sourceCommand: "nextTrack")
+        register(center.previousTrackCommand, as: .previous, sourceCommand: "previousTrack")
 
-        center.pauseCommand.isEnabled = true
-        center.pauseCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.play, sourceCommand: "pause")
-            return .success
-        }
-
-        center.nextTrackCommand.isEnabled = true
-        center.nextTrackCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.next, sourceCommand: "nextTrack")
-            return .success
-        }
-
-        center.previousTrackCommand.isEnabled = true
-        center.previousTrackCommand.addTarget { [weak self] _ in
-            self?.handleCommand(.previous, sourceCommand: "previousTrack")
-            return .success
-        }
+        // Some keyboards and macOS routes expose forward/backward as seek/skip
+        // commands instead of next/previous. Normalize them to track navigation
+        // so they still reach the selected player.
+        center.skipForwardCommand.preferredIntervals = [15]
+        center.skipBackwardCommand.preferredIntervals = [15]
+        register(center.seekForwardCommand, as: .fast, sourceCommand: "seekForward")
+        register(center.seekBackwardCommand, as: .rewind, sourceCommand: "seekBackward")
+        register(center.skipForwardCommand, as: .fast, sourceCommand: "skipForward")
+        register(center.skipBackwardCommand, as: .rewind, sourceCommand: "skipBackward")
     }
 
     private func setupNowPlaying() {
@@ -76,6 +63,14 @@ class NowPlayingInterceptor {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.delegate?.nowPlayingInterceptor(self, receivedKey: key)
+        }
+    }
+
+    private func register(_ command: MPRemoteCommand, as key: MediaKey, sourceCommand: String) {
+        command.isEnabled = true
+        command.addTarget { [weak self] _ in
+            self?.handleCommand(key, sourceCommand: sourceCommand)
+            return .success
         }
     }
 }
