@@ -183,12 +183,41 @@ class GenericMediaController: MediaController {
             return
         }
 
+        // Some apps (e.g. Deezer) require modifier keys for next/previous
+        let needsShift = (command.contains("next") || command.contains("previous"))
+            && bundleIdentifier == "com.deezer.deezer-desktop"
+
+        // Electron/Chromium apps drop modifier+key events sent via postToPid when
+        // in the background. Briefly activate the app, post to the session tap
+        // (which now targets the focused app), then restore focus.
+        if needsShift && !app.isActive {
+            let previous = NSWorkspace.shared.frontmostApplication
+            app.activate(options: [.activateIgnoringOtherApps])
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true) {
+                    keyDown.flags = .maskShift
+                    keyDown.post(tap: .cgSessionEventTap)
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) {
+                        keyUp.flags = .maskShift
+                        keyUp.post(tap: .cgSessionEventTap)
+                    }
+                    previous?.activate(options: [.activateIgnoringOtherApps])
+                    NSLog("MediaController: Keystroke sent to \(self.displayName) via focus swap")
+                }
+            }
+            return
+        }
+
         if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true) {
+            if needsShift { keyDown.flags = .maskShift }
             keyDown.postToPid(pid)
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) {
+                if needsShift { keyUp.flags = .maskShift }
                 keyUp.postToPid(pid)
             }
             NSLog("MediaController: Keystroke sent to \(self.displayName)")
