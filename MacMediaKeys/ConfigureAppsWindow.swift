@@ -14,7 +14,7 @@ class ConfigureAppsWindowController: NSWindowController {
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 350),
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 430),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -141,10 +141,39 @@ class ConfigureAppsView: NSView {
         let addButton = NSButton(title: "Add App...", target: self, action: #selector(addAppClicked))
         addButton.bezelStyle = .rounded
         mainStack.addArrangedSubview(addButton)
+
+        // Separator
+        let diagSeparator = NSBox()
+        diagSeparator.boxType = .separator
+        diagSeparator.translatesAutoresizingMaskIntoConstraints = false
+        mainStack.addArrangedSubview(diagSeparator)
+        NSLayoutConstraint.activate([diagSeparator.widthAnchor.constraint(equalTo: mainStack.widthAnchor)])
+
+        // Diagnostics Section
+        let diagLabel = NSTextField(labelWithString: "Diagnostics")
+        diagLabel.font = NSFont.boldSystemFont(ofSize: 13)
+        mainStack.addArrangedSubview(diagLabel)
+
+        let loggingCheckbox = NSButton(
+            checkboxWithTitle: "Enable debug logging",
+            target: self,
+            action: #selector(debugLoggingToggled(_:))
+        )
+        loggingCheckbox.state = config.isDebugLoggingEnabled() ? .on : .off
+        mainStack.addArrangedSubview(loggingCheckbox)
+
+        let loggingHint = NSTextField(wrappingLabelWithString: "Logs activity to /tmp/macmediakeys.log. Use \u{201C}Copy Debug Info\u{201D} in the menu to share it.")
+        loggingHint.font = NSFont.systemFont(ofSize: 11)
+        loggingHint.textColor = .secondaryLabelColor
+        mainStack.addArrangedSubview(loggingHint)
     }
 
     @objc private func showMenuBarIconToggled(_ sender: NSButton) {
         config.setShowsMenuBarIcon(sender.state != .on)
+    }
+
+    @objc private func debugLoggingToggled(_ sender: NSButton) {
+        config.setDebugLoggingEnabled(sender.state == .on)
     }
 
     @objc private func builtInAppToggled(_ sender: NSButton) {

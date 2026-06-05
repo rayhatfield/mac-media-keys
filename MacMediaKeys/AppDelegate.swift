@@ -4,7 +4,13 @@ import Cocoa
 /// `/tmp/macmediakeys.log` (the unified-log filter doesn't always surface our
 /// output reliably). Compiles to a no-op in Release.
 func debugLog(_ message: String) {
-#if DEBUG
+    #if DEBUG
+    let enabled = true
+    #else
+    let enabled = AppConfiguration.shared.isDebugLoggingEnabled()
+    #endif
+    guard enabled else { return }
+
     NSLog("MacMediaKeys: \(message)")
     let line = "\(ISO8601DateFormatter().string(from: Date())) \(message)\n"
     if let data = line.data(using: .utf8) {
@@ -18,7 +24,6 @@ func debugLog(_ message: String) {
             try? data.write(to: URL(fileURLWithPath: path))
         }
     }
-#endif
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlayingInterceptorDelegate {
@@ -176,6 +181,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         accessibilityItem.target = self
         menu.addItem(accessibilityItem)
 
+        // Debug info
+        let debugItem = NSMenuItem(
+            title: "Copy Debug Info",
+            action: #selector(copyDebugInfo(_:)),
+            keyEquivalent: ""
+        )
+        debugItem.target = self
+        menu.addItem(debugItem)
+
         menu.addItem(NSMenuItem.separator())
 
         // Quit
@@ -258,6 +272,46 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
     @objc func openAccessibilitySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc func copyDebugInfo(_ sender: NSMenuItem) {
+        let bundle  = Bundle.main
+        let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build   = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        let os      = ProcessInfo.processInfo.operatingSystemVersionString
+        let selected = config.selectedApp().map { "\($0.displayName) (\($0.bundleIdentifier))" } ?? "None"
+        let allApps  = config.allAvailableApps().map { $0.displayName }.joined(separator: ", ")
+        let a11y    = MediaKeyTap.isAccessibilityEnabled()
+        let logging = config.isDebugLoggingEnabled()
+
+        var lines: [String] = [
+            "## Media Key Forwarder — Debug Info",
+            "",
+            "**Version:** \(version) (build \(build))",
+            "**macOS:** \(os)",
+            "**Selected app:** \(selected)",
+            "**Available apps:** \(allApps.isEmpty ? "None" : allApps)",
+            "**Accessibility:** \(a11y ? "granted" : "not granted")",
+            "**Event tap active:** \(cgEventTapActive ? "yes" : "no")",
+            "**Debug logging:** \(logging ? "enabled" : "disabled")",
+        ]
+
+        let logPath = "/tmp/macmediakeys.log"
+        if let log = try? String(contentsOfFile: logPath, encoding: .utf8), !log.isEmpty {
+            let logLines = log.components(separatedBy: "\n")
+            let trimmed  = logLines.suffix(200).joined(separator: "\n")
+            lines += ["", "<details><summary>Log</summary>", "", "```", trimmed, "```", "", "</details>"]
+        } else {
+            lines += ["", "*(No log — enable Debug Logging in Settings, reproduce the issue, then copy again.)*"]
+        }
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
+
+        sender.title = "Copied!"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            sender.title = "Copy Debug Info"
         }
     }
 

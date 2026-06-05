@@ -8,6 +8,7 @@ class AppConfiguration {
     private let customAppsKey = "CustomApps"
     private let selectedAppBundleIdKey = "SelectedAppBundleId"
     private let showMenuBarIconKey = "ShowMenuBarIcon"
+    private let debugLoggingEnabledKey = "DebugLoggingEnabled"
 
     private init() {
         // Set default enabled apps if not configured
@@ -31,6 +32,16 @@ class AppConfiguration {
     func setShowsMenuBarIcon(_ shows: Bool) {
         UserDefaults.standard.set(shows, forKey: showMenuBarIconKey)
         NotificationCenter.default.post(name: .appConfigurationChanged, object: nil)
+    }
+
+    // MARK: - Debug Logging
+
+    func isDebugLoggingEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: debugLoggingEnabledKey)
+    }
+
+    func setDebugLoggingEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: debugLoggingEnabledKey)
     }
 
     // MARK: - Built-in Apps
