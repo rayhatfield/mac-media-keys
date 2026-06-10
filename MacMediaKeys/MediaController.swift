@@ -132,21 +132,24 @@ class GenericMediaController: MediaController {
     }
 
     private func executeAppleScript(_ command: String) {
-        // First, try the direct AppleScript command (works for Spotify, Apple Music, etc.)
         let script = "tell application \"\(displayName)\" to \(command)"
+        debugLog("AppleScript: \(script)")
 
         guard let appleScript = NSAppleScript(source: script) else {
-            NSLog("MediaController: Failed to create AppleScript")
+            debugLog("AppleScript: failed to create script object")
             return
         }
 
-        var error: NSDictionary?
-        appleScript.executeAndReturnError(&error)
+        var errorDict: NSDictionary?
+        appleScript.executeAndReturnError(&errorDict)
 
-        if error != nil {
-            // AppleScript failed - the app doesn't support this command
-            // Fall back to sending a keystroke to the app
+        if let error = errorDict {
+            let code = error[NSAppleScript.errorNumber] as? Int ?? -1
+            let msg  = error[NSAppleScript.errorMessage] as? String ?? "unknown"
+            debugLog("AppleScript: failed (code \(code)): \(msg) — falling back to keystroke")
             sendKeystrokeToApp(command)
+        } else {
+            debugLog("AppleScript: succeeded")
         }
     }
 
@@ -154,7 +157,7 @@ class GenericMediaController: MediaController {
         // For apps that don't support AppleScript media commands,
         // send a keystroke directly to the app's process via postToPid —
         // no activation required, so the user's current window keeps focus.
-        NSLog("MediaController: Falling back to direct keystroke for \(displayName)")
+        debugLog("Keystroke: falling back for \(displayName) command=\(command)")
 
         let keyCode: CGKeyCode
         if command.contains("play") || command.contains("pause") {
@@ -164,19 +167,19 @@ class GenericMediaController: MediaController {
         } else if command.contains("previous") {
             keyCode = 123  // left arrow
         } else {
-            NSLog("MediaController: Unknown command, cannot send keystroke")
+            debugLog("Keystroke: unknown command '\(command)'")
             return
         }
 
         guard let app = NSWorkspace.shared.runningApplications.first(where: {
             $0.bundleIdentifier == bundleIdentifier
         }) else {
-            NSLog("MediaController: App \(displayName) not found")
+            debugLog("Keystroke: \(displayName) not found in running apps")
             return
         }
 
         let pid = app.processIdentifier
-        NSLog("MediaController: Sending key code \(keyCode) to \(displayName) (pid \(pid))")
+        debugLog("Keystroke: sending keyCode=\(keyCode) to \(displayName) pid=\(pid) active=\(app.isActive)")
 
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             NSLog("MediaController: Failed to create event source")
@@ -187,24 +190,27 @@ class GenericMediaController: MediaController {
         let needsShift = (command.contains("next") || command.contains("previous"))
             && bundleIdentifier == "com.deezer.deezer-desktop"
 
-        // Electron/Chromium apps drop modifier+key events sent via postToPid when
-        // in the background. Briefly activate the app, post to the session tap
-        // (which now targets the focused app), then restore focus.
-        if needsShift && !app.isActive {
+        // Electron/Chromium apps (Deezer, Spotify) drop keystroke events sent via
+        // postToPid() when in the background. Briefly activate the app, post to the
+        // session tap (which now targets the focused app), then restore focus.
+        let needsFocusSwap = needsShift
+            || (bundleIdentifier == "com.spotify.client" && !command.contains("play"))
+
+        if needsFocusSwap && !app.isActive {
             let previous = NSWorkspace.shared.frontmostApplication
             app.activate(options: [.activateIgnoringOtherApps])
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true) {
-                    keyDown.flags = .maskShift
+                    if needsShift { keyDown.flags = .maskShift }
                     keyDown.post(tap: .cgSessionEventTap)
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) {
-                        keyUp.flags = .maskShift
+                        if needsShift { keyUp.flags = .maskShift }
                         keyUp.post(tap: .cgSessionEventTap)
                     }
                     previous?.activate(options: [.activateIgnoringOtherApps])
-                    NSLog("MediaController: Keystroke sent to \(self.displayName) via focus swap")
+                    debugLog("Keystroke: sent to \(self.displayName) via focus swap")
                 }
             }
             return
@@ -220,7 +226,7 @@ class GenericMediaController: MediaController {
                 if needsShift { keyUp.flags = .maskShift }
                 keyUp.postToPid(pid)
             }
-            NSLog("MediaController: Keystroke sent to \(self.displayName)")
+            debugLog("Keystroke: sent to \(self.displayName) via postToPid")
         }
     }
 }

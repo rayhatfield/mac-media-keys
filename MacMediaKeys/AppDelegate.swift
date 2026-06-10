@@ -275,6 +275,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         }
     }
 
+    private func automationPermissionStatus() -> String {
+        guard let app = config.selectedApp() else { return "no app selected" }
+        // Probe by sending a benign 'get name' event; error -1743 means denied.
+        let script = "tell application id \"\(app.bundleIdentifier)\" to get name"
+        guard let as_ = NSAppleScript(source: script) else { return "unknown" }
+        var err: NSDictionary?
+        as_.executeAndReturnError(&err)
+        if let err = err {
+            let code = err[NSAppleScript.errorNumber] as? Int ?? 0
+            return code == -1743 ? "denied (error -1743)" : "error \(code)"
+        }
+        return "granted"
+    }
+
     @objc func copyDebugInfo(_ sender: NSMenuItem) {
         let bundle  = Bundle.main
         let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
@@ -282,8 +296,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         let os      = ProcessInfo.processInfo.operatingSystemVersionString
         let selected = config.selectedApp().map { "\($0.displayName) (\($0.bundleIdentifier))" } ?? "None"
         let allApps  = config.allAvailableApps().map { $0.displayName }.joined(separator: ", ")
-        let a11y    = MediaKeyTap.isAccessibilityEnabled()
-        let logging = config.isDebugLoggingEnabled()
+        let a11y       = MediaKeyTap.isAccessibilityEnabled()
+        let logging    = config.isDebugLoggingEnabled()
+        let automation = automationPermissionStatus()
 
         var lines: [String] = [
             "## Media Key Forwarder — Debug Info",
@@ -293,6 +308,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
             "**Selected app:** \(selected)",
             "**Available apps:** \(allApps.isEmpty ? "None" : allApps)",
             "**Accessibility:** \(a11y ? "granted" : "not granted")",
+            "**Automation (AppleScript):** \(automation)",
             "**Event tap active:** \(cgEventTapActive ? "yes" : "no")",
             "**Debug logging:** \(logging ? "enabled" : "disabled")",
         ]
