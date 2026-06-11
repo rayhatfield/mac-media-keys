@@ -132,7 +132,7 @@ class GenericMediaController: MediaController {
     }
 
     private func executeAppleScript(_ command: String) {
-        let script = "tell application \"\(displayName)\" to \(command)"
+        let script = "tell application id \"\(bundleIdentifier)\" to \(command)"
         debugLog("AppleScript: \(script)")
 
         guard let appleScript = NSAppleScript(source: script) else {

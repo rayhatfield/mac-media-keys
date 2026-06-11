@@ -345,73 +345,40 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
     // MARK: - Automation Permission
 
-    // Tracks apps for which we have activated and retried the AppleScript once.
-    // Cleared if the retry succeeds (permission was granted via the TCC prompt).
-    private var automationPermissionRetried: Set<String> = []
-    // Tracks apps for which we have already shown the "go to System Settings" alert
-    // this session, to avoid repeating it on every keypress.
+    // Tracks apps for which we have already shown the permission alert this
+    // session, to avoid repeating it on every keypress.
     private var automationPermissionAlertShown: Set<String> = []
 
     @objc private func handleAutomationPermissionRequired(_ notification: Notification) {
         guard let info = notification.userInfo,
-              let displayName    = info["displayName"]    as? String,
-              let bundleIdentifier = info["bundleIdentifier"] as? String,
-              let command        = info["command"]        as? String else { return }
+              let displayName      = info["displayName"]      as? String,
+              let bundleIdentifier = info["bundleIdentifier"] as? String else { return }
 
-        // Already showed the alert this session — don't keep interrupting the user.
+        // Already handled this app this session — don't keep interrupting the user.
         if automationPermissionAlertShown.contains(bundleIdentifier) { return }
+        automationPermissionAlertShown.insert(bundleIdentifier)
 
+        debugLog("Automation: permission denied for \(displayName)")
         let previous = NSWorkspace.shared.frontmostApplication
         NSApp.activate(ignoringOtherApps: true)
-
-        if automationPermissionRetried.contains(bundleIdentifier) {
-            // We already tried and the TCC prompt was dismissed without granting.
-            // Show the alert explaining how to fix it in System Settings.
-            automationPermissionAlertShown.insert(bundleIdentifier)
-            showAutomationPermissionAlert(for: displayName)
-            previous?.activate(options: [.activateIgnoringOtherApps])
-            return
-        }
-
-        // First time: activate and retry the AppleScript. macOS will surface the
-        // TCC prompt now that the app is in the foreground.
-        automationPermissionRetried.insert(bundleIdentifier)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            guard let self = self else { return }
-            let script = "tell application \"\(displayName)\" to \(command)"
-            guard let appleScript = NSAppleScript(source: script) else {
-                previous?.activate(options: [.activateIgnoringOtherApps])
-                return
-            }
-            var errorDict: NSDictionary?
-            // Blocks until the TCC prompt is dismissed (if one appears).
-            appleScript.executeAndReturnError(&errorDict)
-
-            if errorDict == nil {
-                // Permission granted — command executed. Clear the retry flag so
-                // if permission is later revoked we go through this flow again.
-                debugLog("Automation: permission granted for \(displayName)")
-                self.automationPermissionRetried.remove(bundleIdentifier)
-                previous?.activate(options: [.activateIgnoringOtherApps])
-            } else {
-                // User denied (or the entry already existed as denied).
-                debugLog("Automation: permission denied for \(displayName)")
-                self.automationPermissionAlertShown.insert(bundleIdentifier)
-                self.showAutomationPermissionAlert(for: displayName)
-                previous?.activate(options: [.activateIgnoringOtherApps])
-            }
-        }
+        showAutomationPermissionAlert(for: displayName)
+        previous?.activate(options: [.activateIgnoringOtherApps])
     }
 
     private func showAutomationPermissionAlert(for appName: String) {
         let alert = NSAlert()
         alert.messageText = "Permission needed to control \(appName)"
-        alert.informativeText = "Media Key Forwarder needs Automation permission to send commands to \(appName). Open System Settings → Privacy & Security → Automation and enable access for Media Key Forwarder."
+        alert.informativeText = "Media Key Forwarder needs Automation permission to send commands to \(appName). Open System Settings → Privacy & Security → Automation and enable access for \"MacMediaKeys\" (this app may be listed under that name rather than \"Media Key Forwarder\")."
         alert.addButton(withTitle: "Open System Settings")
         alert.addButton(withTitle: "Dismiss")
-        if alert.runModal() == .alertFirstButtonReturn {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
-                NSWorkspace.shared.open(url)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            // Defer the open call to outside the runModal event loop to avoid
+            // conflicting with in-progress window server focus transitions.
+            DispatchQueue.main.async {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                    NSWorkspace.shared.open(url)
+                }
             }
         }
     }
