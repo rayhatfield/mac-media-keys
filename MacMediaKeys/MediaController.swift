@@ -146,8 +146,20 @@ class GenericMediaController: MediaController {
         if let error = errorDict {
             let code = error[NSAppleScript.errorNumber] as? Int ?? -1
             let msg  = error[NSAppleScript.errorMessage] as? String ?? "unknown"
-            debugLog("AppleScript: failed (code \(code)): \(msg) — falling back to keystroke")
-            sendKeystrokeToApp(command)
+            debugLog("AppleScript: failed (code \(code)): \(msg)")
+            if code == -1743 {
+                // Automation permission not granted. Signal AppDelegate to activate the
+                // app and retry — macOS will surface the TCC prompt when we're in foreground.
+                debugLog("AppleScript: requesting Automation permission for \(displayName)")
+                NotificationCenter.default.post(
+                    name: .automationPermissionRequired,
+                    object: nil,
+                    userInfo: ["displayName": displayName, "bundleIdentifier": bundleIdentifier, "command": command]
+                )
+            } else {
+                debugLog("AppleScript: falling back to keystroke")
+                sendKeystrokeToApp(command)
+            }
         } else {
             debugLog("AppleScript: succeeded")
         }
@@ -190,23 +202,20 @@ class GenericMediaController: MediaController {
         let needsShift = (command.contains("next") || command.contains("previous"))
             && bundleIdentifier == "com.deezer.deezer-desktop"
 
-        // Electron/Chromium apps (Deezer, Spotify) drop keystroke events sent via
-        // postToPid() when in the background. Briefly activate the app, post to the
-        // session tap (which now targets the focused app), then restore focus.
-        let needsFocusSwap = needsShift
-            || (bundleIdentifier == "com.spotify.client" && !command.contains("play"))
-
-        if needsFocusSwap && !app.isActive {
+        // Electron/Chromium apps drop modifier+key events sent via postToPid when
+        // in the background. Briefly activate the app, post to the session tap
+        // (which now targets the focused app), then restore focus.
+        if needsShift && !app.isActive {
             let previous = NSWorkspace.shared.frontmostApplication
             app.activate(options: [.activateIgnoringOtherApps])
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true) {
-                    if needsShift { keyDown.flags = .maskShift }
+                    keyDown.flags = .maskShift
                     keyDown.post(tap: .cgSessionEventTap)
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) {
-                        if needsShift { keyUp.flags = .maskShift }
+                        keyUp.flags = .maskShift
                         keyUp.post(tap: .cgSessionEventTap)
                     }
                     previous?.activate(options: [.activateIgnoringOtherApps])

@@ -158,4 +158,5 @@ class AppConfiguration {
 
 extension Notification.Name {
     static let appConfigurationChanged = Notification.Name("AppConfigurationChanged")
+    static let automationPermissionRequired = Notification.Name("AutomationPermissionRequired")
 }
