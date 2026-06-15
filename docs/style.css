@@ -268,6 +268,82 @@ img {
   box-shadow: var(--shadow-screenshot);
 }
 
+/* --- Footnotes / Tooltips --- */
+
+.footnote {
+  position: relative;
+  border-bottom: 1px dotted var(--color-text-secondary);
+  cursor: help;
+}
+
+.footnote-marker {
+  font-size: 0.7em;
+  vertical-align: super;
+  color: var(--color-accent);
+  margin-left: 1px;
+}
+
+.footnote-tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  width: max-content;
+  max-width: 260px;
+  background-color: var(--color-text);
+  color: var(--color-bg);
+  font-size: 14px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.45;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card-hover);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease, transform 150ms ease;
+  z-index: 20;
+}
+
+.footnote-tip a {
+  color: #6CB8FF;
+}
+
+.footnote-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-text);
+}
+
+.footnote-tip::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: -20px;
+  right: -20px;
+  height: 14px;
+}
+
+.footnote:hover .footnote-tip,
+.footnote:focus .footnote-tip,
+.footnote:focus-visible .footnote-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 599px) {
+  .footnote-tip {
+    max-width: 200px;
+    font-size: 13px;
+  }
+}
+
 /* --- Features Grid --- */
 
 .features-grid {
