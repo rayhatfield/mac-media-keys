@@ -14,6 +14,7 @@
 		1A0000010000000000000006 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000007 /* AppConfiguration.swift */; };
 		1A0000010000000000000007 /* ConfigureAppsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000008 /* ConfigureAppsWindow.swift */; };
 		1A0000010000000000000008 /* NowPlayingInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000009 /* NowPlayingInterceptor.swift */; };
+		1A000001000000000000000B /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000002000000000000000C /* UpdateChecker.swift */; };
 		1A0000010000000000000009 /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A000002000000000000000A /* MediaPlayer.framework */; };
 		1A000001000000000000000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A000002000000000000000B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -27,6 +28,7 @@
 		1A0000020000000000000007 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		1A0000020000000000000008 /* ConfigureAppsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureAppsWindow.swift; sourceTree = "<group>"; };
 		1A0000020000000000000009 /* NowPlayingInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingInterceptor.swift; sourceTree = "<group>"; };
+		1A000002000000000000000C /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		1A000002000000000000000A /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
 		1A000002000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A0000030000000000000001 /* MacMediaKeys.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacMediaKeys.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,6 +73,7 @@
 				1A0000020000000000000007 /* AppConfiguration.swift */,
 				1A0000020000000000000008 /* ConfigureAppsWindow.swift */,
 				1A0000020000000000000009 /* NowPlayingInterceptor.swift */,
+				1A000002000000000000000C /* UpdateChecker.swift */,
 				1A0000020000000000000006 /* Info.plist */,
 				1A000002000000000000000B /* Assets.xcassets */,
 			);
@@ -156,6 +159,7 @@
 				1A0000010000000000000006 /* AppConfiguration.swift in Sources */,
 				1A0000010000000000000007 /* ConfigureAppsWindow.swift in Sources */,
 				1A0000010000000000000008 /* NowPlayingInterceptor.swift in Sources */,
+				1A000001000000000000000B /* UpdateChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,7 +298,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.9;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mediakeys.forwarder;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -323,7 +327,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.9;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mediakeys.forwarder;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

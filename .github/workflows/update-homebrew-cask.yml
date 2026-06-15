@@ -1,0 +1,50 @@
+name: Update Homebrew Cask
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-cask:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute release info
+        id: release
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          ASSET_URL: ${{ github.event.release.assets[0].browser_download_url }}
+        run: |
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "asset_url=$ASSET_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Download release asset and compute checksum
+        id: sha
+        run: |
+          curl -sL -o app.zip "${{ steps.release.outputs.asset_url }}"
+          echo "sha256=$(sha256sum app.zip | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: rayhatfield/homebrew-mac-media-keys
+          token: ${{ secrets.TAP_REPO_TOKEN }}
+          path: tap
+
+      - name: Update cask file
+        run: |
+          cd tap
+          sed -i -E "s/^( *version )\"[^\"]+\"/\1\"${{ steps.release.outputs.version }}\"/" Casks/mac-media-keys.rb
+          sed -i -E "s/^( *sha256 )\"[^\"]+\"/\1\"${{ steps.sha.outputs.sha256 }}\"/" Casks/mac-media-keys.rb
+
+      - name: Commit and push
+        run: |
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git add Casks/mac-media-keys.rb
+          git commit -m "Update mac-media-keys to ${{ steps.release.outputs.version }}"
+          git push

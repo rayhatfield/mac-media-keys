@@ -80,6 +80,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         DispatchQueue.main.async { [weak self] in
             self?.setupMediaKeyTap()
         }
+
+        // Check for app updates in the background (throttled, respects user setting)
+        UpdateChecker.shared.checkForUpdates(userInitiated: false)
     }
 
     func syncPresentationMode() {
@@ -197,6 +200,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         )
         debugItem.target = self
         menu.addItem(debugItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Check for updates
+        let updateItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        updateItem.target = self
+        menu.addItem(updateItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -341,6 +355,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
     @objc func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    @objc func checkForUpdates() {
+        UpdateChecker.shared.checkForUpdates(userInitiated: true)
     }
 
     // MARK: - Automation Permission

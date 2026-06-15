@@ -14,7 +14,7 @@ class ConfigureAppsWindowController: NSWindowController {
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 430),
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 460),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -81,6 +81,10 @@ class ConfigureAppsView: NSView {
         menuBarHint.font = NSFont.systemFont(ofSize: 11)
         menuBarHint.textColor = .secondaryLabelColor
         mainStack.addArrangedSubview(menuBarHint)
+
+        let updateCheckCheckbox = NSButton(checkboxWithTitle: "Automatically check for updates", target: self, action: #selector(automaticUpdateChecksToggled(_:)))
+        updateCheckCheckbox.state = config.automaticUpdateChecksEnabled() ? .on : .off
+        mainStack.addArrangedSubview(updateCheckCheckbox)
 
         // Separator
         let topSeparator = NSBox()
@@ -170,6 +174,10 @@ class ConfigureAppsView: NSView {
 
     @objc private func showMenuBarIconToggled(_ sender: NSButton) {
         config.setShowsMenuBarIcon(sender.state != .on)
+    }
+
+    @objc private func automaticUpdateChecksToggled(_ sender: NSButton) {
+        config.setAutomaticUpdateChecksEnabled(sender.state == .on)
     }
 
     @objc private func debugLoggingToggled(_ sender: NSButton) {

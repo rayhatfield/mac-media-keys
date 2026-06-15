@@ -27,12 +27,29 @@ Download the latest release from the [Releases page](https://github.com/rayhatfi
 
 ## Installation
 
+### Homebrew
+
+```bash
+brew tap rayhatfield/mac-media-keys
+brew install --cask mac-media-keys
+```
+
+To update later:
+
+```bash
+brew upgrade --cask mac-media-keys
+```
+
+### Manual
+
 1. Download `MacMediaKeys.zip` from the latest release
 2. Unzip and drag `MacMediaKeys.app` to your Applications folder
 3. Grant Accessibility permission when prompted:
    - Click "Open System Settings" or go to **System Settings → Privacy & Security → Accessibility**
    - Enable **MacMediaKeys**
 4. Restart the app after granting permission
+
+The app also checks for new releases automatically and will prompt you to download an update when one is available (this can be disabled in Settings).
 
 ## Usage
 

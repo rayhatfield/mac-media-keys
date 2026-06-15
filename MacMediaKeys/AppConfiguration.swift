@@ -9,6 +9,9 @@ class AppConfiguration {
     private let selectedAppBundleIdKey = "SelectedAppBundleId"
     private let showMenuBarIconKey = "ShowMenuBarIcon"
     private let debugLoggingEnabledKey = "DebugLoggingEnabled"
+    private let automaticUpdateChecksEnabledKey = "AutomaticUpdateChecksEnabled"
+    private let lastUpdateCheckDateKey = "LastUpdateCheckDate"
+    private let skippedUpdateVersionKey = "SkippedUpdateVersion"
 
     private init() {
         // Set default enabled apps if not configured
@@ -21,6 +24,10 @@ class AppConfiguration {
         if UserDefaults.standard.object(forKey: showMenuBarIconKey) == nil {
             UserDefaults.standard.set(true, forKey: showMenuBarIconKey)
         }
+
+        if UserDefaults.standard.object(forKey: automaticUpdateChecksEnabledKey) == nil {
+            UserDefaults.standard.set(true, forKey: automaticUpdateChecksEnabledKey)
+        }
     }
 
     // MARK: - App Appearance
@@ -32,6 +39,33 @@ class AppConfiguration {
     func setShowsMenuBarIcon(_ shows: Bool) {
         UserDefaults.standard.set(shows, forKey: showMenuBarIconKey)
         NotificationCenter.default.post(name: .appConfigurationChanged, object: nil)
+    }
+
+    // MARK: - Update Checks
+
+    func automaticUpdateChecksEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: automaticUpdateChecksEnabledKey)
+    }
+
+    func setAutomaticUpdateChecksEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: automaticUpdateChecksEnabledKey)
+    }
+
+    func lastUpdateCheckDate() -> Date? {
+        UserDefaults.standard.object(forKey: lastUpdateCheckDateKey) as? Date
+    }
+
+    func setLastUpdateCheckDate(_ date: Date) {
+        UserDefaults.standard.set(date, forKey: lastUpdateCheckDateKey)
+    }
+
+    /// The version the user chose to skip notifications for (from an automatic check).
+    func skippedUpdateVersion() -> String? {
+        UserDefaults.standard.string(forKey: skippedUpdateVersionKey)
+    }
+
+    func setSkippedUpdateVersion(_ version: String) {
+        UserDefaults.standard.set(version, forKey: skippedUpdateVersionKey)
     }
 
     // MARK: - Debug Logging
