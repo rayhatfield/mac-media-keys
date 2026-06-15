@@ -263,6 +263,7 @@ img {
 }
 
 .hero-screenshot img {
+  max-width: 300px;
   border-radius: 10px;
   box-shadow: var(--shadow-screenshot);
 }
@@ -444,7 +445,7 @@ img {
   }
 
   .hero-screenshot img {
-    max-width: 320px;
+    max-width: 280px;
     margin: 0 auto;
   }
 }
@@ -476,7 +477,7 @@ img {
   }
 
   .hero-screenshot img {
-    max-width: 280px;
+    max-width: 240px;
   }
 
   .features-grid {
