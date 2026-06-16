@@ -30,8 +30,7 @@ Download the latest release from the [Releases page](https://github.com/rayhatfi
 ### Homebrew
 
 ```bash
-brew tap rayhatfield/mac-media-keys
-brew install --cask mac-media-keys
+brew install --cask rayhatfield/mac-media-keys/mac-media-keys
 ```
 
 To update later:
