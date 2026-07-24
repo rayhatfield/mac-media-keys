@@ -172,15 +172,26 @@ class AboutView: NSView {
         return label
     }
 
-    /// A "Name @username" cell where only the @username is a clickable link to `profileURL`.
+    /// A "Name (@username)" cell where only the @username is a clickable link to `profileURL`.
     private func creditNameCell(_ name: String, username: String, profileURL: URL) -> NSStackView {
-        let nameLabel = NSTextField(labelWithString: name)
+        let nameLabel = NSTextField(labelWithString: "\(name) (")
         nameLabel.font = NSFont.systemFont(ofSize: 11)
         nameLabel.textColor = .labelColor
 
-        let row = NSStackView(views: [nameLabel, creditLinkButton(username, url: profileURL)])
+        let closingLabel = NSTextField(labelWithString: ")")
+        closingLabel.font = NSFont.systemFont(ofSize: 11)
+        closingLabel.textColor = .labelColor
+
+        let linkButton = creditLinkButton(username, url: profileURL)
+
+        let row = NSStackView(views: [nameLabel, linkButton, closingLabel])
         row.orientation = .horizontal
-        row.spacing = 3
+        row.spacing = 0
+        // NSButton reserves title padding even when borderless; pull the
+        // parentheses in so it reads as a tight "(@username)" rather than
+        // "( @username )".
+        row.setCustomSpacing(-4, after: nameLabel)
+        row.setCustomSpacing(-4, after: linkButton)
         return row
     }
 
