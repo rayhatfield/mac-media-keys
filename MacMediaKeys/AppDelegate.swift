@@ -240,6 +240,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
             if currentController == nil || currentController.bundleIdentifier != app.bundleIdentifier {
                 currentController = MediaControllerFactory.controller(for: app)
                 NSLog("MacMediaKeys: Controller updated to: \(app.displayName)")
+                nowPlayingInterceptor?.reassertNowPlaying()
             }
         }
     }
@@ -260,6 +261,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         config.setSelectedAppBundleId(app.bundleIdentifier)
         currentController = MediaControllerFactory.controller(for: app)
         NSLog("MacMediaKeys: Switched to: \(app.displayName)")
+        nowPlayingInterceptor?.reassertNowPlaying()
     }
 
     @objc func openSettings() {

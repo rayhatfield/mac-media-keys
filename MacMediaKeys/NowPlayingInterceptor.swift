@@ -16,9 +16,27 @@ protocol NowPlayingInterceptorDelegate: AnyObject {
 class NowPlayingInterceptor {
     weak var delegate: NowPlayingInterceptorDelegate?
 
+    private var refreshTimer: Timer?
+    private let claimStartTime = Date()
+
+    // How often to re-assert our Now Playing claim. Real media apps (e.g.
+    // Qobuz) continuously update their own now-playing info while playing,
+    // which makes macOS consider them "more current" than a claim we only
+    // set once at launch — so rcd keeps routing hardware media keys directly
+    // to them instead of us. Refreshing on this cadence keeps our claim from
+    // going stale relative to theirs.
+    private static let refreshInterval: TimeInterval = 1.0
+
     init() {
         setupRemoteCommands()
-        setupNowPlaying()
+        reassertNowPlaying()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: Self.refreshInterval, repeats: true) { [weak self] _ in
+            self?.reassertNowPlaying()
+        }
+    }
+
+    deinit {
+        refreshTimer?.invalidate()
     }
 
     private func setupRemoteCommands() {
@@ -47,12 +65,15 @@ class NowPlayingInterceptor {
         register(center.skipBackwardCommand, as: .rewind, sourceCommand: "skipBackward")
     }
 
-    private func setupNowPlaying() {
+    /// Re-asserts our Now Playing claim. Called on a timer, and on demand
+    /// right when the user switches the selected app, so our claim is
+    /// freshest exactly when it matters most for winning the routing race.
+    func reassertNowPlaying() {
         let infoCenter = MPNowPlayingInfoCenter.default()
         infoCenter.playbackState = .playing
         infoCenter.nowPlayingInfo = [
             MPMediaItemPropertyTitle: "MacMediaKeys",
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: 0,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: Date().timeIntervalSince(claimStartTime),
             MPMediaItemPropertyPlaybackDuration: 0,
             MPNowPlayingInfoPropertyPlaybackRate: 1.0
         ]
