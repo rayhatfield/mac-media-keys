@@ -203,6 +203,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
         menu.addItem(NSMenuItem.separator())
 
+        // About
+        let aboutItem = NSMenuItem(
+            title: "About MacMediaKeys",
+            action: #selector(openAbout),
+            keyEquivalent: ""
+        )
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
         // Check for updates
         let updateItem = NSMenuItem(
             title: "Check for Updates…",
@@ -361,6 +370,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
     @objc func checkForUpdates() {
         UpdateChecker.shared.checkForUpdates(userInitiated: true)
+    }
+
+    @objc func openAbout() {
+        AboutWindowController.show()
     }
 
     // MARK: - Automation Permission

@@ -15,10 +15,53 @@ final class UpdateChecker {
     private struct ReleaseInfo: Decodable {
         let tagName: String
         let htmlURL: String
+        let assets: [Asset]
+
+        struct Asset: Decodable {
+            let name: String
+            let browserDownloadURL: String
+
+            enum CodingKeys: String, CodingKey {
+                case name
+                case browserDownloadURL = "browser_download_url"
+            }
+        }
 
         enum CodingKeys: String, CodingKey {
             case tagName = "tag_name"
             case htmlURL = "html_url"
+            case assets
+        }
+    }
+
+    /// Result of comparing the latest GitHub release against the running version.
+    enum UpdateStatus {
+        case upToDate
+        /// `downloadURL` is the release's `.zip` asset, for in-app installation. `nil`
+        /// only if the release unexpectedly has no zip asset — callers should fall
+        /// back to opening `releaseURL` in that case.
+        case available(version: String, releaseURL: URL, downloadURL: URL?)
+        case error
+    }
+
+    /// Fetches the latest GitHub release and compares it against the current version.
+    /// Always performs a fresh network request — no throttling, no skipped-version
+    /// check, and never shows an alert. Completion is called on the main queue.
+    func checkStatus(completion: @escaping (UpdateStatus) -> Void) {
+        fetchLatestRelease { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let release):
+                    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+                    if Self.isVersion(release.version, newerThan: currentVersion) {
+                        completion(.available(version: release.version, releaseURL: release.url, downloadURL: release.downloadURL))
+                    } else {
+                        completion(.upToDate)
+                    }
+                case .failure:
+                    completion(.error)
+                }
+            }
         }
     }
 
@@ -43,49 +86,57 @@ final class UpdateChecker {
 
         config.setLastUpdateCheckDate(Date())
 
+        fetchLatestRelease { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let release):
+                    if Self.isVersion(release.version, newerThan: release.currentVersion) {
+                        if !userInitiated && config.skippedUpdateVersion() == release.version {
+                            debugLog("UpdateChecker: version \(release.version) was skipped, not prompting")
+                            return
+                        }
+                        self.showUpdateAvailableAlert(latestVersion: release.version, userInitiated: userInitiated)
+                    } else if userInitiated {
+                        self.showUpToDateAlert(currentVersion: release.currentVersion)
+                    }
+                case .failure:
+                    if userInitiated {
+                        self.showErrorAlert()
+                    }
+                }
+            }
+        }
+    }
+
+    /// Fetches and decodes the latest GitHub release. Calls `completion` on a
+    /// background queue with the resolved version/URL, or an error.
+    private func fetchLatestRelease(completion: @escaping (Result<(version: String, currentVersion: String, url: URL, downloadURL: URL?), Error>) -> Void) {
         let task = URLSession.shared.dataTask(with: releasesAPIURL) { data, response, error in
             if let error = error {
                 debugLog("UpdateChecker: request failed: \(error.localizedDescription)")
-                if userInitiated {
-                    DispatchQueue.main.async {
-                        self.showErrorAlert()
-                    }
-                }
+                completion(.failure(error))
                 return
             }
 
-            guard let data = data else { return }
+            guard let data = data else {
+                completion(.failure(URLError(.badServerResponse)))
+                return
+            }
 
-            let release: ReleaseInfo
             do {
-                release = try JSONDecoder().decode(ReleaseInfo.self, from: data)
+                let release = try JSONDecoder().decode(ReleaseInfo.self, from: data)
+                let latestVersion = release.tagName.hasPrefix("v") ? String(release.tagName.dropFirst()) : release.tagName
+                let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+                let releaseURL = URL(string: release.htmlURL) ?? self.releasesPageURL
+                let downloadURL = release.assets
+                    .first { $0.name.hasSuffix(".zip") }
+                    .flatMap { URL(string: $0.browserDownloadURL) }
+
+                debugLog("UpdateChecker: current=\(currentVersion) latest=\(latestVersion)")
+                completion(.success((version: latestVersion, currentVersion: currentVersion, url: releaseURL, downloadURL: downloadURL)))
             } catch {
                 debugLog("UpdateChecker: failed to decode response: \(error.localizedDescription)")
-                if userInitiated {
-                    DispatchQueue.main.async {
-                        self.showErrorAlert()
-                    }
-                }
-                return
-            }
-
-            let latestVersion = release.tagName.hasPrefix("v") ? String(release.tagName.dropFirst()) : release.tagName
-            let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
-
-            debugLog("UpdateChecker: current=\(currentVersion) latest=\(latestVersion)")
-
-            let releaseURL = URL(string: release.htmlURL) ?? self.releasesPageURL
-
-            DispatchQueue.main.async {
-                if Self.isVersion(latestVersion, newerThan: currentVersion) {
-                    if !userInitiated && config.skippedUpdateVersion() == latestVersion {
-                        debugLog("UpdateChecker: version \(latestVersion) was skipped, not prompting")
-                        return
-                    }
-                    self.showUpdateAvailableAlert(latestVersion: latestVersion, releaseURL: releaseURL, userInitiated: userInitiated)
-                } else if userInitiated {
-                    self.showUpToDateAlert(currentVersion: currentVersion)
-                }
+                completion(.failure(error))
             }
         }
         task.resume()
@@ -93,11 +144,11 @@ final class UpdateChecker {
 
     // MARK: - Alerts
 
-    private func showUpdateAvailableAlert(latestVersion: String, releaseURL: URL, userInitiated: Bool) {
+    private func showUpdateAvailableAlert(latestVersion: String, userInitiated: Bool) {
         let alert = NSAlert()
         alert.messageText = "Update Available"
         alert.informativeText = "Mac Media Keys \(latestVersion) is available. You're currently running \(currentVersionString())."
-        alert.addButton(withTitle: "View Release")
+        alert.addButton(withTitle: "Install Update")
         alert.addButton(withTitle: "Not Now")
         if !userInitiated {
             alert.addButton(withTitle: "Skip This Version")
@@ -108,7 +159,8 @@ final class UpdateChecker {
 
         switch response {
         case .alertFirstButtonReturn:
-            NSWorkspace.shared.open(releaseURL)
+            // The About window re-checks and drives the actual install/progress UI.
+            AboutWindowController.show()
         case .alertThirdButtonReturn where !userInitiated:
             AppConfiguration.shared.setSkippedUpdateVersion(latestVersion)
         default:
