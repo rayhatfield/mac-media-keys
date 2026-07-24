@@ -190,8 +190,8 @@ class AboutView: NSView {
         // NSButton reserves title padding even when borderless; pull the
         // parentheses in so it reads as a tight "(@username)" rather than
         // "( @username )".
-        row.setCustomSpacing(-4, after: nameLabel)
-        row.setCustomSpacing(-4, after: linkButton)
+        row.setCustomSpacing(-2, after: nameLabel)
+        row.setCustomSpacing(-2, after: linkButton)
         return row
     }
 
