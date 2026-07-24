@@ -24,3 +24,6 @@ Pods/
 timeline.xctimeline
 playground.xcworkspace
 debris/
+
+# Claude Code local settings (may reference unrelated local project paths)
+.claude/settings.local.json
