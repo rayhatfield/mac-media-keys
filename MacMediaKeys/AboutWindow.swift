@@ -16,7 +16,7 @@ class AboutWindowController: NSWindowController {
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 340),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -59,16 +59,16 @@ class AboutView: NSView {
         let mainStack = NSStackView()
         mainStack.orientation = .vertical
         mainStack.alignment = .centerX
-        mainStack.spacing = 10
+        mainStack.spacing = 8
         mainStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(mainStack)
 
         NSLayoutConstraint.activate([
-            mainStack.topAnchor.constraint(equalTo: topAnchor, constant: 24),
-            mainStack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 20),
-            mainStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -20),
+            mainStack.topAnchor.constraint(equalTo: topAnchor, constant: 28),
+            mainStack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 24),
+            mainStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -24),
             mainStack.centerXAnchor.constraint(equalTo: centerXAnchor),
-            mainStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -20)
+            mainStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -24)
         ])
 
         // App icon
@@ -76,10 +76,11 @@ class AboutView: NSView {
         iconView.image = NSApp.applicationIconImage
         iconView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            iconView.widthAnchor.constraint(equalToConstant: 64),
-            iconView.heightAnchor.constraint(equalToConstant: 64)
+            iconView.widthAnchor.constraint(equalToConstant: 80),
+            iconView.heightAnchor.constraint(equalToConstant: 80)
         ])
         mainStack.addArrangedSubview(iconView)
+        mainStack.setCustomSpacing(14, after: iconView)
 
         // App name
         let bundle = Bundle.main
@@ -87,28 +88,35 @@ class AboutView: NSView {
             ?? bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
             ?? "MacMediaKeys"
         let nameLabel = NSTextField(labelWithString: appName)
-        nameLabel.font = NSFont.boldSystemFont(ofSize: 15)
+        nameLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        nameLabel.alignment = .center
         mainStack.addArrangedSubview(nameLabel)
+        mainStack.setCustomSpacing(3, after: nameLabel)
 
         // Version
         let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        let versionLabel = NSTextField(labelWithString: "Version \(version) (build \(build))")
+        let versionLabel = NSTextField(labelWithString: "Version \(version) (\(build))")
         versionLabel.font = NSFont.systemFont(ofSize: 11)
         versionLabel.textColor = .secondaryLabelColor
+        versionLabel.alignment = .center
         mainStack.addArrangedSubview(versionLabel)
+        mainStack.setCustomSpacing(18, after: versionLabel)
 
         // Update status
         updateStatusLabel = NSTextField(labelWithString: "Checking for updates…")
-        updateStatusLabel.font = NSFont.systemFont(ofSize: 11)
+        updateStatusLabel.font = NSFont.systemFont(ofSize: 11.5)
         updateStatusLabel.textColor = .secondaryLabelColor
+        updateStatusLabel.alignment = .center
         mainStack.addArrangedSubview(updateStatusLabel)
+        mainStack.setCustomSpacing(10, after: updateStatusLabel)
 
         updateActionButton = NSButton(title: "Install Update", target: self, action: #selector(updateActionClicked))
         updateActionButton.bezelStyle = .rounded
-        updateActionButton.controlSize = .small
+        updateActionButton.controlSize = .regular
         updateActionButton.isHidden = true
         mainStack.addArrangedSubview(updateActionButton)
+        mainStack.setCustomSpacing(20, after: updateActionButton)
 
         // Separator
         let separator = NSBox()
@@ -118,57 +126,72 @@ class AboutView: NSView {
         NSLayoutConstraint.activate([
             separator.widthAnchor.constraint(equalTo: mainStack.widthAnchor)
         ])
-        mainStack.setCustomSpacing(16, after: separator)
+        mainStack.setCustomSpacing(18, after: separator)
 
-        // Credits
-        let creditsStack = NSStackView()
-        creditsStack.orientation = .vertical
-        creditsStack.alignment = .centerX
-        creditsStack.spacing = 4
-        creditsStack.addArrangedSubview(creditRow(
-            prefix: "Created by",
-            name: "Ray Hatfield",
-            url: URL(string: "https://github.com/rayhatfield")!
-        ))
-        creditsStack.addArrangedSubview(creditRow(
-            prefix: "With contributions from",
-            name: "Leopold Stenger (@polderleo)",
-            url: URL(string: "https://github.com/polderleo")!
-        ))
-        creditsStack.addArrangedSubview(creditRow(
-            prefix: "Built with",
-            name: "Claude Code",
-            url: URL(string: "https://claude.com/claude-code")!
-        ))
-        mainStack.addArrangedSubview(creditsStack)
+        // Credits — the two human credits align into a "label: name" table (like a
+        // Finder Get Info panel) rather than each line centering independently, which
+        // reads as noticeably more deliberate than three ragged, differently-indented rows.
+        // Only the @username is a link — the name itself is plain text.
+        let creditsGrid = NSGridView(views: [
+            [creditPrefixLabel("Created by"), creditNameCell("Ray Hatfield", username: "@rayhatfield", profileURL: URL(string: "https://github.com/rayhatfield")!)],
+            [creditPrefixLabel("With contributions from"), creditNameCell("Leopold Stenger", username: "@polderleo", profileURL: URL(string: "https://github.com/polderleo")!)]
+        ])
+        creditsGrid.rowSpacing = 3
+        creditsGrid.columnSpacing = 5
+        creditsGrid.column(at: 0).xPlacement = .trailing
+        creditsGrid.column(at: 1).xPlacement = .leading
+        mainStack.addArrangedSubview(creditsGrid)
+        mainStack.setCustomSpacing(10, after: creditsGrid)
+
+        // Built with Claude Code — its own quieter line, set apart from the human credits.
+        let builtWithRow = NSStackView(views: [
+            creditPrefixLabel("Built with", color: .tertiaryLabelColor),
+            creditLinkButton("Claude Code", url: URL(string: "https://claude.com/claude-code")!, fontSize: 10.5)
+        ])
+        builtWithRow.orientation = .horizontal
+        builtWithRow.spacing = 4
+        mainStack.addArrangedSubview(builtWithRow)
+        mainStack.setCustomSpacing(18, after: builtWithRow)
 
         // GitHub link
         let githubButton = NSButton(title: "View on GitHub", target: self, action: #selector(viewOnGitHubClicked))
+        githubButton.image = NSImage(systemSymbolName: "arrow.up.right", accessibilityDescription: nil)
+        githubButton.imagePosition = .imageTrailing
+        githubButton.imageScaling = .scaleProportionallyDown
+        githubButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 10, weight: .semibold)
         githubButton.isBordered = false
-        githubButton.font = NSFont.systemFont(ofSize: 12)
+        githubButton.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         githubButton.contentTintColor = .linkColor
         mainStack.addArrangedSubview(githubButton)
     }
 
-    /// Builds a "<prefix> <name>" row where <name> is a clickable link to `url`.
-    private func creditRow(prefix: String, name: String, url: URL) -> NSStackView {
-        let row = NSStackView()
+    private func creditPrefixLabel(_ text: String, color: NSColor = .secondaryLabelColor) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = color
+        return label
+    }
+
+    /// A "Name @username" cell where only the @username is a clickable link to `profileURL`.
+    private func creditNameCell(_ name: String, username: String, profileURL: URL) -> NSStackView {
+        let nameLabel = NSTextField(labelWithString: name)
+        nameLabel.font = NSFont.systemFont(ofSize: 11)
+        nameLabel.textColor = .labelColor
+
+        let row = NSStackView(views: [nameLabel, creditLinkButton(username, url: profileURL)])
         row.orientation = .horizontal
-        row.spacing = 4
-
-        let prefixLabel = NSTextField(labelWithString: prefix)
-        prefixLabel.font = NSFont.systemFont(ofSize: 11)
-        prefixLabel.textColor = .secondaryLabelColor
-        row.addArrangedSubview(prefixLabel)
-
-        let nameButton = NSButton(title: name, target: self, action: #selector(creditLinkClicked(_:)))
-        nameButton.isBordered = false
-        nameButton.font = NSFont.systemFont(ofSize: 11)
-        nameButton.contentTintColor = .linkColor
-        nameButton.identifier = NSUserInterfaceItemIdentifier(url.absoluteString)
-        row.addArrangedSubview(nameButton)
-
+        row.spacing = 3
         return row
+    }
+
+    /// A borderless, link-colored button used for a clickable credit name.
+    private func creditLinkButton(_ title: String, url: URL, fontSize: CGFloat = 11) -> NSButton {
+        let button = NSButton(title: title, target: self, action: #selector(creditLinkClicked(_:)))
+        button.isBordered = false
+        button.font = NSFont.systemFont(ofSize: fontSize)
+        button.contentTintColor = .linkColor
+        button.identifier = NSUserInterfaceItemIdentifier(url.absoluteString)
+        return button
     }
 
     @objc private func creditLinkClicked(_ sender: NSButton) {
