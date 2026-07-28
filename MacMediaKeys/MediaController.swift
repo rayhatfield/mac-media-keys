@@ -71,6 +71,18 @@ class GenericMediaController: MediaController {
     private let nextTrackCommand: String
     private let previousTrackCommand: String
 
+    /// AppleScript runs here, never on the main thread. An AppleEvent to a
+    /// busy or unresponsive app can block for seconds (the default timeout is
+    /// ~60s). The CGEvent tap's run-loop source lives on the main run loop, so
+    /// a blocked main thread makes the window server consider our tap
+    /// unresponsive and disable it — after which we silently miss key-down
+    /// events and the double-toggle bug reappears.
+    ///
+    /// Serial, and shared across controllers: NSAppleScript wants consistent
+    /// thread affinity, and serializing also avoids overlapping commands to
+    /// the same app.
+    private static let scriptQueue = DispatchQueue(label: "com.mediakeys.forwarder.applescript")
+
     init(app: CustomMediaApp) {
         self.displayName = app.displayName
         self.bundleIdentifier = app.bundleIdentifier
@@ -135,33 +147,50 @@ class GenericMediaController: MediaController {
         let script = "tell application id \"\(bundleIdentifier)\" to \(command)"
         debugLog("AppleScript: \(script)")
 
-        guard let appleScript = NSAppleScript(source: script) else {
-            debugLog("AppleScript: failed to create script object")
-            return
-        }
+        // Off the main thread — see `scriptQueue`. Everything that follows in
+        // the completion path touches NSWorkspace/UI, so it hops back to main.
+        Self.scriptQueue.async { [weak self] in
+            guard let self = self else { return }
 
-        var errorDict: NSDictionary?
-        appleScript.executeAndReturnError(&errorDict)
-
-        if let error = errorDict {
-            let code = error[NSAppleScript.errorNumber] as? Int ?? -1
-            let msg  = error[NSAppleScript.errorMessage] as? String ?? "unknown"
-            debugLog("AppleScript: failed (code \(code)): \(msg)")
-            if code == -1743 {
-                // Automation permission not granted. Signal AppDelegate to activate the
-                // app and retry — macOS will surface the TCC prompt when we're in foreground.
-                debugLog("AppleScript: requesting Automation permission for \(displayName)")
-                NotificationCenter.default.post(
-                    name: .automationPermissionRequired,
-                    object: nil,
-                    userInfo: ["displayName": displayName, "bundleIdentifier": bundleIdentifier, "command": command]
-                )
-            } else {
-                debugLog("AppleScript: falling back to keystroke")
-                sendKeystrokeToApp(command)
+            guard let appleScript = NSAppleScript(source: script) else {
+                debugLog("AppleScript: failed to create script object")
+                return
             }
-        } else {
-            debugLog("AppleScript: succeeded")
+
+            let started = Date()
+            var errorDict: NSDictionary?
+            appleScript.executeAndReturnError(&errorDict)
+            let duration = Date().timeIntervalSince(started)
+
+            // A slow AppleEvent is exactly what used to stall the main thread
+            // and get the event tap disabled, so surface it.
+            if duration > 1.0 {
+                let seconds = String(format: "%.1f", duration)
+                debugLog("AppleScript: SLOW — took \(seconds)s for \(self.displayName)")
+            }
+
+            DispatchQueue.main.async {
+                if let error = errorDict {
+                    let code = error[NSAppleScript.errorNumber] as? Int ?? -1
+                    let msg  = error[NSAppleScript.errorMessage] as? String ?? "unknown"
+                    debugLog("AppleScript: failed (code \(code)): \(msg)")
+                    if code == -1743 {
+                        // Automation permission not granted. Signal AppDelegate to activate the
+                        // app and retry — macOS will surface the TCC prompt when we're in foreground.
+                        debugLog("AppleScript: requesting Automation permission for \(self.displayName)")
+                        NotificationCenter.default.post(
+                            name: .automationPermissionRequired,
+                            object: nil,
+                            userInfo: ["displayName": self.displayName, "bundleIdentifier": self.bundleIdentifier, "command": command]
+                        )
+                    } else {
+                        debugLog("AppleScript: falling back to keystroke")
+                        self.sendKeystrokeToApp(command)
+                    }
+                } else {
+                    debugLog("AppleScript: succeeded")
+                }
+            }
         }
     }
 

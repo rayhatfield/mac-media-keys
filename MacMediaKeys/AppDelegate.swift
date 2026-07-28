@@ -1,5 +1,11 @@
 import Cocoa
 
+/// Serial queue for log file writes. `debugLog` is called from inside the
+/// CGEvent tap callback, which runs on the main run loop — synchronous file
+/// I/O there adds latency to event handling, and a slow tap callback is
+/// exactly what causes the window server to disable the tap.
+private let debugLogQueue = DispatchQueue(label: "com.mediakeys.forwarder.debuglog")
+
 /// Diagnostic logger. In DEBUG builds emits an `NSLog` and appends to
 /// `/tmp/macmediakeys.log` (the unified-log filter doesn't always surface our
 /// output reliably). Compiles to a no-op in Release.
@@ -12,8 +18,12 @@ func debugLog(_ message: String) {
     guard enabled else { return }
 
     NSLog("MacMediaKeys: \(message)")
+
+    // Timestamp on the calling thread so ordering reflects when the event
+    // actually happened, not when the write was drained off the queue.
     let line = "\(ISO8601DateFormatter().string(from: Date())) \(message)\n"
-    if let data = line.data(using: .utf8) {
+    debugLogQueue.async {
+        guard let data = line.data(using: .utf8) else { return }
         let path = "/tmp/macmediakeys.log"
         if FileManager.default.fileExists(atPath: path),
            let handle = FileHandle(forWritingAtPath: path) {
@@ -45,8 +55,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
     private var cgEventTapActive: Bool = false
     private static let remoteCommandGraceWindow: TimeInterval = 0.5
 
+    // App Nap opt-out. This is a background-only accessory app (LSUIElement),
+    // which makes it a prime App Nap candidate — and App Nap coalesces timers
+    // aggressively. If our Now Playing refresh timer gets throttled the claim
+    // goes stale and macOS resumes routing media keys straight to whichever
+    // app is really playing. Held for the process lifetime.
+    private var appNapAssertion: NSObjectProtocol?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("MacMediaKeys: App launched")
+
+        appNapAssertion = ProcessInfo.processInfo.beginActivity(
+            options: .userInitiated,
+            reason: "Forwarding media keys requires an unthrottled event tap and Now Playing refresh"
+        )
 
         // Listen for configuration changes
         NotificationCenter.default.addObserver(

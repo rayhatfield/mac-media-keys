@@ -20,6 +20,14 @@ class MediaKeyTap {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
+    // Diagnostics: a key-up with no preceding key-down for the same key means
+    // something upstream (rcd/mediaremoted, or a disabled tap) swallowed the
+    // key-down. On the machine where the double-toggle reproduces this
+    // coincided with the bug; on other machines it occurs harmlessly, so it's
+    // logged as an observation to correlate against, not a diagnosis.
+    private var sawKeyDown: [Int32: Date] = [:]
+    private static let keyDownPairingWindow: TimeInterval = 2.0
+
     init() {}
 
     deinit {
@@ -108,8 +116,15 @@ class MediaKeyTap {
     // MARK: - Event Handling
 
     private func handleEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        // Handle tap disabled events (re-enable if needed)
+        // Handle tap disabled events (re-enable if needed).
+        //
+        // `tapDisabledByTimeout` means the window server decided our callback
+        // was too slow — while disabled we silently miss key-downs, which is
+        // one way the double-toggle bug reappears. Log it: this failure was
+        // previously invisible.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            let reason = (type == .tapDisabledByTimeout) ? "timeout" : "user input"
+            debugLog("CGEventTap DISABLED by \(reason) — re-enabling")
             if let eventTap = eventTap {
                 CGEvent.tapEnable(tap: eventTap, enable: true)
             }
@@ -152,6 +167,7 @@ class MediaKeyTap {
             if keyRepeat == 0 {
                 if let mediaKey = MediaKey(rawValue: keyCode) {
                     debugLog("CGEventTap key-down keyCode=\(keyCode) key=\(mediaKey)")
+                    sawKeyDown[keyCode] = Date()
                     DispatchQueue.main.async { [weak self] in
                         guard let self = self else { return }
                         self.delegate?.mediaKeyTap(self, receivedKey: mediaKey)
@@ -164,7 +180,21 @@ class MediaKeyTap {
             // Key up event - also notify delegate as fallback
             // (on macOS 26+, key-down may be consumed by rcd before reaching us)
             if let mediaKey = MediaKey(rawValue: keyCode) {
-                debugLog("CGEventTap key-up keyCode=\(keyCode) key=\(mediaKey)")
+                let pairedDown = sawKeyDown[keyCode].map {
+                    Date().timeIntervalSince($0) <= Self.keyDownPairingWindow
+                } ?? false
+                sawKeyDown[keyCode] = nil
+
+                if pairedDown {
+                    debugLog("CGEventTap key-up keyCode=\(keyCode) key=\(mediaKey)")
+                } else {
+                    // Something upstream (rcd/mediaremoted) consumed the
+                    // key-down before our tap saw it. Whether that upstream
+                    // handler also actioned the key on another app varies by
+                    // machine, so this is recorded as a fact, not a verdict.
+                    debugLog("CGEventTap key-up keyCode=\(keyCode) key=\(mediaKey) — no preceding key-down (consumed upstream)")
+                }
+
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
                     self.delegate?.mediaKeyTap(self, receivedKey: mediaKey)
