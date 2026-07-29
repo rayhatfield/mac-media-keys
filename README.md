@@ -20,6 +20,7 @@ Full disclosure: I am a professional developer but I am not a macOS/Swift/Obj-C 
 - Add any custom media app via "Configure Apps..."
 - Menu bar icon for easy access
 - Remembers your selected app between launches
+- Checks for updates and installs them in place from the About window
 
 ## Download
 
@@ -48,7 +49,7 @@ brew upgrade --cask mac-media-keys
    - Enable **MacMediaKeys**
 4. Restart the app after granting permission
 
-The app also checks for new releases automatically and will prompt you to download an update when one is available (this can be disabled in Settings).
+The app also checks for new releases automatically and will offer to install the update for you — no re-download or re-drag needed (this can be disabled in Settings). You can also check on demand from **About MacMediaKeys**.
 
 ## Usage
 
@@ -104,9 +105,11 @@ If you already have a release build installed, replace it with the Debug build s
 The app uses `CGEventTap` to intercept system-defined media key events before they reach other applications. When a media key is pressed, the app sends the corresponding command to your selected media player via AppleScript (for supported apps) or direct keystroke injection (for other apps).
 
 Key technical details:
+- Taps at the HID level (`cghidEventTap`), ahead of the system's own media-key routing. A session-level tap sits _behind_ `rcd`/`mediaremoted` and behind apps that register global media-key shortcuts (many Electron players do), so one keypress could reach both that app and this one — toggling playback twice. Falls back to a session-level tap if the HID tap can't be created.
 - Intercepts both key-down AND key-up events to prevent `mediaremoted` from launching Apple Music
 - Uses `NSApplicationActivationPolicyAccessory` for Sequoia/Tahoe compatibility
 - Falls back to spacebar/arrow key injection for apps without AppleScript support
+- Learns at runtime which apps AppleScript can actually drive. For apps it can't, next/previous are passed through to the app's own media-key handling instead of being swallowed — so track navigation keeps working, though those two keys follow normal system routing rather than being retargeted. Play/pause is always retargeted.
 
 ## Why Not on the Mac App Store?
 
