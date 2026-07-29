@@ -262,9 +262,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         }
     }
 
+    /// Keeps the tap's pass-through policy aligned with the selected app.
+    private func syncTrackKeyPolicy() {
+        guard let tap = mediaKeyTap, let app = config.selectedApp() else { return }
+        let passThrough = !config.isAppScriptable(app.bundleIdentifier)
+        guard tap.passThroughTrackKeys != passThrough else { return }
+        tap.passThroughTrackKeys = passThrough
+        debugLog("Track keys for \(app.displayName): \(passThrough ? "passed through (app not scriptable)" : "forwarded by us")")
+    }
+
     @objc func configurationChanged() {
         NSLog("MacMediaKeys: Configuration changed, rebuilding menu")
         syncPresentationMode()
+        syncTrackKeyPolicy()
 
         // Update controller if selected app changed or was removed
         if let app = config.selectedApp() {
@@ -293,6 +303,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
         currentController = MediaControllerFactory.controller(for: app)
         NSLog("MacMediaKeys: Switched to: \(app.displayName)")
         nowPlayingInterceptor?.reassertNowPlaying()
+        syncTrackKeyPolicy()
     }
 
     @objc func openSettings() {
@@ -310,6 +321,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
 
         if mediaKeyTap.start() {
             cgEventTapActive = true
+            syncTrackKeyPolicy()
             updateStatus("Status: Active ✓")
         } else {
             cgEventTapActive = false
@@ -364,7 +376,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, MediaKeyTapDelegate, NowPlay
             "**Available apps:** \(allApps.isEmpty ? "None" : allApps)",
             "**Accessibility:** \(a11y ? "granted" : "not granted")",
             "**Automation (AppleScript):** \(automation)",
-            "**Event tap active:** \(cgEventTapActive ? "yes" : "no")",
+            "**Event tap active:** \(cgEventTapActive ? "yes" : "no")\(mediaKeyTap?.activeTapLocation.map { " (\($0) level)" } ?? "")",
             "**Debug logging:** \(logging ? "enabled" : "disabled")",
         ]
 

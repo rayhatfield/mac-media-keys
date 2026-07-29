@@ -116,14 +116,45 @@ class GenericMediaController: MediaController {
         // Launch the app if it's not running
         if !isRunning() {
             launchApp()
-            // Wait a bit for the app to start, then send the command
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                self?.executeAppleScript(command)
-            }
+            // A fixed delay loses the command when the app needs longer than
+            // that to become ready — the app launches but never starts
+            // playing. Poll for it to finish launching instead, then give it a
+            // moment to wire up its media handling before sending.
+            waitForLaunch(command: command, attemptsRemaining: 20)
             return
         }
 
         executeAppleScript(command)
+    }
+
+    /// Polls until the app reports it has finished launching, then sends the
+    /// command. Gives up after `attemptsRemaining` polls so a failed launch
+    /// doesn't leave a timer running forever.
+    private func waitForLaunch(command: String, attemptsRemaining: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            guard let self = self else { return }
+
+            let app = NSWorkspace.shared.runningApplications.first {
+                $0.bundleIdentifier == self.bundleIdentifier
+            }
+
+            if let app = app, app.isFinishedLaunching {
+                // Launched, but a just-started player isn't necessarily ready
+                // to accept a transport command yet.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                    self.executeAppleScript(command)
+                }
+                return
+            }
+
+            guard attemptsRemaining > 0 else {
+                debugLog("Launch: \(self.displayName) never finished launching; sending anyway")
+                self.executeAppleScript(command)
+                return
+            }
+
+            self.waitForLaunch(command: command, attemptsRemaining: attemptsRemaining - 1)
+        }
     }
 
     private func launchApp() {
@@ -184,10 +215,17 @@ class GenericMediaController: MediaController {
                             userInfo: ["displayName": self.displayName, "bundleIdentifier": self.bundleIdentifier, "command": command]
                         )
                     } else {
-                        debugLog("AppleScript: falling back to keystroke")
+                        // Not a permission problem — this app has no usable
+                        // scripting dictionary. Remember it, so track keys get
+                        // passed through to the app's own media-key listener
+                        // instead of being swallowed for a command we can't
+                        // actually deliver.
+                        AppConfiguration.shared.setAppScriptable(false, bundleId: self.bundleIdentifier)
+                        debugLog("AppleScript: \(self.displayName) is not scriptable — falling back to keystroke")
                         self.sendKeystrokeToApp(command)
                     }
                 } else {
+                    AppConfiguration.shared.setAppScriptable(true, bundleId: self.bundleIdentifier)
                     debugLog("AppleScript: succeeded")
                 }
             }

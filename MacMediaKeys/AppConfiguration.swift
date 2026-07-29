@@ -12,6 +12,7 @@ class AppConfiguration {
     private let automaticUpdateChecksEnabledKey = "AutomaticUpdateChecksEnabled"
     private let lastUpdateCheckDateKey = "LastUpdateCheckDate"
     private let skippedUpdateVersionKey = "SkippedUpdateVersion"
+    private let nonScriptableAppsKey = "NonScriptableApps"
 
     private init() {
         // Set default enabled apps if not configured
@@ -76,6 +77,32 @@ class AppConfiguration {
 
     func setDebugLoggingEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(enabled, forKey: debugLoggingEnabledKey)
+    }
+
+    // MARK: - AppleScript Support
+
+    /// Whether we can drive this app with AppleScript. Learned at runtime:
+    /// apps with no usable scripting dictionary (e.g. Qobuz) fail with a
+    /// "command not defined" error, and we remember that so we can stop
+    /// swallowing their track-navigation keys — those apps listen for the
+    /// media key itself, which only reaches them if we let it through.
+    func isAppScriptable(_ bundleId: String) -> Bool {
+        let known = UserDefaults.standard.stringArray(forKey: nonScriptableAppsKey) ?? []
+        return !known.contains(bundleId)
+    }
+
+    func setAppScriptable(_ scriptable: Bool, bundleId: String) {
+        var known = UserDefaults.standard.stringArray(forKey: nonScriptableAppsKey) ?? []
+        let contains = known.contains(bundleId)
+        if scriptable {
+            guard contains else { return }
+            known.removeAll { $0 == bundleId }
+        } else {
+            guard !contains else { return }
+            known.append(bundleId)
+        }
+        UserDefaults.standard.set(known, forKey: nonScriptableAppsKey)
+        NotificationCenter.default.post(name: .appConfigurationChanged, object: nil)
     }
 
     // MARK: - Built-in Apps

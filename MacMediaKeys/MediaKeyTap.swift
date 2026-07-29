@@ -20,6 +20,21 @@ class MediaKeyTap {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
+    /// Which tap point we actually got ("HID" or "session"). Surfaced in
+    /// Copy Debug Info, since the two behave differently with respect to rcd.
+    private(set) var activeTapLocation: String?
+
+    /// When the selected app can't be driven by AppleScript, we have no way to
+    /// deliver next/previous to it ourselves — synthetic keys reach nothing,
+    /// because such players listen only for the media key itself. Consuming
+    /// those keys would silently break track navigation, so we let them pass
+    /// through to the app's own listener instead.
+    ///
+    /// Play/pause is deliberately excluded: we *can* deliver that (the web
+    /// player responds to a spacebar), and it's the only key that ever
+    /// double-toggled, so it stays consumed.
+    var passThroughTrackKeys: Bool = false
+
     // Diagnostics: a key-up with no preceding key-down for the same key means
     // something upstream (rcd/mediaremoted, or a disabled tap) swallowed the
     // key-down. On the machine where the double-toggle reproduces this
@@ -70,21 +85,43 @@ class MediaKeyTap {
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
-        eventTap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: CGEventMask(eventMask),
-            callback: callback,
-            userInfo: refcon
-        )
+        // Tap at the HID level rather than the session level.
+        //
+        // `rcd`/`mediaremoted` consumes the media-key *key-down* before a
+        // session-level tap sees it whenever it considers another app to be
+        // the Now Playing target — and it delivers that key-down natively to
+        // that app, which is the second toggle in the double-toggle bug. An
+        // app actually producing audio outranks our metadata-only Now Playing
+        // claim no matter how often we refresh it, so we cannot reliably win
+        // that arbitration; instead we intercept ahead of it. `cghidEventTap`
+        // is the earliest CGEvent tap point, before the session-level
+        // dispatch rcd participates in.
+        //
+        // Fall back to the session tap if the HID tap can't be created, so a
+        // permissions edge case degrades to the old behavior instead of
+        // leaving the app with no tap at all.
+        for location in [CGEventTapLocation.cghidEventTap, .cgSessionEventTap] {
+            eventTap = CGEvent.tapCreate(
+                tap: location,
+                place: .headInsertEventTap,
+                options: .defaultTap,
+                eventsOfInterest: CGEventMask(eventMask),
+                callback: callback,
+                userInfo: refcon
+            )
+            if eventTap != nil {
+                activeTapLocation = (location == .cghidEventTap) ? "HID" : "session"
+                break
+            }
+            NSLog("MediaKeyTap: tapCreate failed at \(location == .cghidEventTap ? "HID" : "session") level")
+        }
 
         guard let eventTap = eventTap else {
             NSLog("MediaKeyTap: Failed to create event tap. CGEvent.tapCreate returned nil.")
             NSLog("MediaKeyTap: This usually means accessibility permission is not granted or the app needs to be re-authorized.")
             return false
         }
-        NSLog("MediaKeyTap: Event tap created successfully")
+        debugLog("CGEventTap created at \(activeTapLocation ?? "unknown") level")
 
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
 
@@ -150,7 +187,16 @@ class MediaKeyTap {
         let keyRepeat = keyFlags & 0x1
 
         // Check if it's a media key we care about
-        guard MediaKey(rawValue: keyCode) != nil else {
+        guard let key = MediaKey(rawValue: keyCode) else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        // Track navigation for an app we can't drive: stay out of the way
+        // entirely so the app's own media-key listener receives it.
+        if passThroughTrackKeys, key != .play {
+            if keyState == 0xA {
+                debugLog("CGEventTap passing through \(key) — target app handles media keys itself")
+            }
             return Unmanaged.passUnretained(event)
         }
 
